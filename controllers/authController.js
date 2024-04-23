@@ -31,8 +31,8 @@ exports.login = async (req, res) => {
         phoneNumber: user.phoneNumber,
       };
   
-      const token = await jwt.sign(payload, secretOrkey);
-      return res.status(200).json({ token: `Bearer ${token}`, user });
+      const accessToken = await jwt.sign(payload, secretOrkey);
+      return res.status(200).json({ accessToken: `${accessToken}`, user });
     } catch (error) {
       res.status(500).json({ errors: error });
     }

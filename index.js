@@ -6,13 +6,24 @@ const TerraformRoutes = require ('./routes/terraformRoute');
 const AuthRoutes = require ('./routes/authRoute');
 const connectDB = require('./config/DBConnect');
 const { Server } = require('http');
+const cors = require("cors");
+
+const corsOptions = {
+    origin: 'http://localhost:59924',
+    credentials: true // Allow cookies to be sent with requests
+  };
+
+app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
+
 
 
 // Use the routes
 app.use('/terraform', TerraformRoutes);
 app.use('/gitlab', gitlabRoutes);
 app.use('/auth',AuthRoutes)
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;
