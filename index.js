@@ -7,15 +7,18 @@ const AuthRoutes = require ('./routes/authRoute');
 const connectDB = require('./config/DBConnect');
 const { Server } = require('http');
 const cors = require("cors");
+const cookieParser = require('cookie-parser');
+
+
 
 const corsOptions = {
-    origin: 'http://localhost:59924',
+    origin: 'http://localhost:4200',
     credentials: true // Allow cookies to be sent with requests
   };
 
 app.use(cors(corsOptions));
-
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 
 

@@ -3,7 +3,7 @@ const User = require("../models/User.js");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 const config = require("config");
-const secretOrkey = config.get("secretOrkey");
+const secretOrKey = config.get("secretOrKey");
 const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
@@ -13,30 +13,39 @@ const Client_URL = config.get("Client_URL");
 const bcrypt = require("bcryptjs");
 
 // Login User
-
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
-    try { 
-      const user = await User.findOne({ email });
-      if (!user)
-        return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch)
-        return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
-  
-      const payload = {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-      };
-  
-      const accessToken = await jwt.sign(payload, secretOrkey);
-      return res.status(200).json({ accessToken: `${accessToken}`, user });
-    } catch (error) {
-      res.status(500).json({ errors: error });
-    }
-  };
+  const { email, password } = req.body;
+  try { 
+     const user = await User.findOne({ email });
+     if (!user)
+       return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
+     const isMatch = await bcrypt.compare(password, user.password);
+     if (!isMatch)
+       return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
+ 
+     const payload = {
+       id: user._id,
+       name: user.name,
+       email: user.email,
+       phoneNumber: user.phoneNumber,
+     };
+ 
+     const accessToken = await jwt.sign(payload, secretOrKey);
+     // Set the JWT token in a cookie
+     res.cookie('jwt', accessToken, { httpOnly: true });
+     // Return the response without the accessToken in the body
+     return res.status(200).json({ user });
+  } catch (error) {
+     // Log the error to the console for debugging purposes
+     console.error('Error during login:', error);
+     // Return a more informative response to the client
+     return res.status(500).json({ msg: 'Internal server error', error: error.message });
+  }
+ };
+ 
+ 
+
+
 
   // Register User
 exports.register = async (req, res) => {
