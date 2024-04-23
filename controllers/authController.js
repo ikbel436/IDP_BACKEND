@@ -190,7 +190,7 @@ exports.forgotPassword = async (req, res) => {
       secure: false, // true for 465, false for other ports
       auth: {
         user: "zaghouani.yosri@gmail.com", // generated ethereal user
-        pass: "yimktgkvxvbbylzp", // generated ethereal password
+        pass: "", // generated ethereal password
       },
       tls: { rejectUnauthorized: false },
     });
