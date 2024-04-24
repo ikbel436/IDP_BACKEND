@@ -7,7 +7,7 @@ const secretOrKey = config.get("secretOrKey");
 const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
-
+const path = require("path");
 
 //Password Crypt
 const bcrypt = require("bcryptjs");
@@ -108,6 +108,14 @@ exports.register = async (req, res) => {
       res.status(500).json({ errors: error });
     }
   };
+
+
+  // Logout endpoint
+exports.logout = ((req, res) => {
+  // Clear the JWT token cookie
+  res.cookie('jwt', '', { expires: new Date(0), path: '/', secure: true, httpOnly: true, sameSite: 'strict' });
+  res.status(200).send('Logged out');
+});
 
   // Handle user roles
 exports.authorizeRoles = (...roles) => {
@@ -620,4 +628,36 @@ exports.resetPassword = async (req, res) => {
   } else {
     return res.status(401).json({ error: "Invalid or missing reset link" });
   }
+};
+
+
+exports.uploadImage = async (req, res) => {
+  const { userId } = req.params;
+
+  if (req.file && req.file.path) {
+    const fileUrl = path.basename(req.file.path);
+    console.log("image path", fileUrl);
+    const updatedUser = await User.findByIdAndUpdate(userId, {
+      image: fileUrl,
+    });
+
+    return res.json({
+      status: "ok",
+      success: true,
+      url: fileUrl,
+      user: updatedUser,
+    });
+  } else {
+    return res.status(400).json({
+      status: "error",
+      message: "File not found",
+    });
+  }
+};
+
+exports.getImage = async (req, res) => {
+  const { userId, imageName } = req.params;
+  res.sendFile(
+    `C:/Users/zagho/OneDrive/Documents/GitHub/BackAPPX/uploads/${userId}/${imageName}`
+  );
 };
