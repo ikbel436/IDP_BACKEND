@@ -193,7 +193,7 @@ exports.forgotPassword = async (req, res) => {
         .json({ error: "user with this email does not exist" });
     }
 
-    const token = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
+    const accessToken = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
       expiresIn: "20m",
     });
 
@@ -396,7 +396,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
       <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 60px;font-family:'Raleway',sans-serif;" align="left">
         
   <div class="v-font-size" style="color: #1386e5; line-height: 140%; text-align: left; word-wrap: break-word;">
-    <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>${Client_URL}/resetpassword/${token}</p></link></strong></span></span></p>
+    <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>${Client_URL}/resetpassword/${accessToken}</p></link></strong></span></span></p>
   </div>
 
       </td>
@@ -580,11 +580,11 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
 
     console.log("email has been sent");
 
-    await user.updateOne({ resetLink: token });
+    await user.updateOne({ resetLink: accessToken });
 
     return res.status(200).json({
       message: "Email has been sent, kindly activate your account",
-      token,
+      accessToken,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });
@@ -596,13 +596,13 @@ exports.resetPassword = async (req, res) => {
   if (resetLink && typeof resetLink === "string") {
     jwt.verify(resetLink, RESET_PWD_KEY, function (err, decodedData) {
       if (err) {
-        return res.status(401).json({ err: "Incorrect token/expired" });
+        return res.status(401).json({ err: "Incorrect accessToken/expired" });
       }
       User.findOne({ resetLink }, async (err, user) => {
         if (err || !user) {
           return res
             .status(400)
-            .json({ error: "User with this token does not exist" });
+            .json({ error: "User with this accessToken does not exist" });
         }
 
         const salt = await bcrypt.genSalt(10);
