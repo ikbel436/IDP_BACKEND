@@ -15,7 +15,7 @@ const extractJwtFromCookie = (req) => {
 
 
 const opts = {
- jwtFromRequest: extractJwtFromCookie, // Use the custom extraction function
+ jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
  secretOrKey,
 };
 
