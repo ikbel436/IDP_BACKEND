@@ -8,6 +8,7 @@ const connectDB = require('./config/DBConnect');
 const { Server } = require('http');
 const cors = require("cors");
 const cookieParser = require('cookie-parser');
+const projectRouter = require('./routes/projectRoutes');
 
 
 
@@ -26,6 +27,7 @@ app.use(cookieParser());
 app.use('/terraform', TerraformRoutes);
 app.use('/gitlab', gitlabRoutes);
 app.use('/auth',AuthRoutes)
+app.use('/project', projectRouter)
 
 
 // Start the server
