@@ -28,6 +28,7 @@ exports.generateTerraform = (req, res) => {
   const ec2Instance = tfg.resource("aws_instance", "my_ec2_instance", {
     ami: configs.ami || "ami-0c55b159cbfafe1f0",
     instance_type: configs.instance_type || "t2.micro",
+    key_name: configs.keyName || "2024key",
     tags: map({
       Name: configs.name || "MyEC2Instance",
     }),
