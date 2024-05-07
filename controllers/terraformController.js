@@ -3,13 +3,13 @@ const { exec } = require("child_process");
 const { TerraformGenerator, map } = require("terraform-generator");
 const AWS = require('aws-sdk');
 const { EC2Client, TerminateInstancesCommand } = require("@aws-sdk/client-ec2");
-const  {S3} = require ('aws-sdk/clients/s3');
+const { S3 } = require('aws-sdk/clients/s3');
 
 // Configure AWS SDK
-  const ec2Client = new EC2Client({ region: "ca-central-1" }); 
+const ec2Client = new EC2Client({ region: "ca-central-1" }); 
 AWS.config.update({ region: 'ca-central-1' }); 
 
-//Generate Terraform Files
+// Generate Terraform Files
 exports.generateTerraform = (req, res) => {
   console.log("Received request body:", req.body);
 
@@ -36,18 +36,35 @@ exports.generateTerraform = (req, res) => {
 
   // Generate S3 bucket configuration if generateS3Module is true
   if (configs.generateS3Module) {
-    // Generate S3 bucket configuration if generateS3Module is true
-    if (configs.generateS3Module) {
-      // Generate the S3 bucket configuration
-      const s3BucketName = configs.s3BucketName || "example-bucket-name";
-      const s3Bucket = tfg.resource("aws_s3_bucket", "my_s3_bucket", {
-        bucket: s3BucketName,
-      });
+    // Generate the S3 bucket configuration
+    const s3BucketName = configs.s3BucketName || "example-bucket-name";
+    const s3Bucket = tfg.resource("aws_s3_bucket", "my_s3_bucket", {
+      bucket: s3BucketName,
+    });
 
-      // Add a separate resource for the bucket ACL, using the same bucket name
-      tfg.resource("aws_s3_bucket_acl", "my_s3_bucket_acl", {
+    // Add a separate resource for the bucket ACL, using the same bucket name
+    // tfg.resource("aws_s3_bucket_acl", "my_s3_bucket_acl", {
+    //   bucket: s3BucketName, // Use the same bucket name as the S3 bucket resource
+    //   acl: "public-read",
+    // });
+
+    // Generate S3 bucket policy if generateS3Module is true
+    if (configs.generateS3Module) {
+      // Generate the S3 bucket policy
+      const s3BucketPolicy = tfg.resource("aws_s3_bucket_policy", "private_policy", {
         bucket: s3BucketName, // Use the same bucket name as the S3 bucket resource
-        acl: "public-read",
+        policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Sid: "PrivateContent",
+              Effect: "Deny",
+              Principal: "*",
+              Action: "s3:GetObject",
+              Resource: `arn:aws:s3:::${s3BucketName}/*`
+            }
+          ]
+        })
       });
     }
   }
