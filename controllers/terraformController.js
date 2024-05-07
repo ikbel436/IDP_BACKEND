@@ -24,15 +24,18 @@ exports.generateTerraform = (req, res) => {
     profile: configs.profile || "default",
   });
 
-  // Generate EC2 instance configuration
-  const ec2Instance = tfg.resource("aws_instance", "my_ec2_instance", {
-    ami: configs.ami || "ami-0c55b159cbfafe1f0",
-    instance_type: configs.instance_type || "t2.micro",
-    key_name: configs.keyName || "2024key",
-    tags: map({
-      Name: configs.name || "MyEC2Instance",
-    }),
-  });
+  // Check if ec2Instance is true in the request body
+  if (configs.ec2Instance) {
+    // Generate the EC2 instance configuration
+    const ec2Instance = tfg.resource("aws_instance", "my_ec2_instance", {
+      ami: configs.ami || "ami-0c55b159cbfafe1f0",
+      instance_type: configs.instance_type || "t2.micro",
+      key_name: configs.keyName || "2024key",
+      tags: map({
+        Name: configs.name || "MyEC2Instance",
+      }),
+    });
+  }
 
   // Generate S3 bucket configuration if generateS3Module is true
   if (configs.generateS3Module) {
@@ -42,17 +45,11 @@ exports.generateTerraform = (req, res) => {
       bucket: s3BucketName,
     });
 
-    // Add a separate resource for the bucket ACL, using the same bucket name
-    // tfg.resource("aws_s3_bucket_acl", "my_s3_bucket_acl", {
-    //   bucket: s3BucketName, // Use the same bucket name as the S3 bucket resource
-    //   acl: "public-read",
-    // });
-
     // Generate S3 bucket policy if generateS3Module is true
     if (configs.generateS3Module) {
       // Generate the S3 bucket policy
       const s3BucketPolicy = tfg.resource("aws_s3_bucket_policy", "private_policy", {
-        bucket: s3BucketName, // Use the same bucket name as the S3 bucket resource
+        bucket: s3BucketName, 
         policy: JSON.stringify({
           Version: "2012-10-17",
           Statement: [
