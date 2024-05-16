@@ -33,6 +33,15 @@ const userSchema = mongoose.Schema({
     data: String,
     default: "",
   },
+  
+  status: {
+    type: String,
+    default: "online",
+  },
+  description: {
+    type: String,
+    default: "",
+  },
 });
 
 module.exports = User = mongoose.model("user", userSchema);

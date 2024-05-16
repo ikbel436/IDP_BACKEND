@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 
 // create project and assign it to a user
 exports.createProject = async (req, res) => {
-    const { name, description } = req.body;
+    const { name, description,provider,lien} = req.body;
     var crypto = require("crypto");
     var reference = crypto.randomBytes(30).toString("hex");
 
@@ -29,6 +29,9 @@ exports.createProject = async (req, res) => {
             name,
             reference,
             description,
+            provider,
+            lien,
+            
         });
 
         await newProject.save();
@@ -45,7 +48,7 @@ exports.createProject = async (req, res) => {
             useFindAndModify: false,
         }).populate({ path: "myProject", model: Project });
 
-        return res.status(201).json(user);
+        return res.status(201).json(newProject);
     } catch (error) {
         console.log(error)
         res.status(500).json({ errors: error });
@@ -75,10 +78,12 @@ const verifyToken = (req, res, next) => {
 // Update a project
 exports.updateProject = [verifyToken, async (req, res) => {
     const projectId = req.params.id;
-    const { name, description } = req.body;
-
+    const { name, description,provider,lien } = req.body;
+    console.log('Request parameters:', req.params);
+    console.log(`Updating project with ID: ${projectId}`);
+    console.log(`Request body:`, req.body);
     try {
-        const updatedProject = await Project.findByIdAndUpdate(projectId, { name, description }, { new: true });
+        const updatedProject = await Project.findByIdAndUpdate(projectId, { name, description,provider,lien }, { new: true });
         if (!updatedProject) {
             return res.status(404).json({ message: "Project not found" });
         }
@@ -87,6 +92,27 @@ exports.updateProject = [verifyToken, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }];
+
+exports.retreive = [verifyToken, async(req, res) => {
+    try {
+        console.log("Authenticated user:", req.user);
+        console.log("Authenticated user ID:", req.user.id);
+    
+        const user = await User.findById(req.user.id).populate("myProject");
+    
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+    
+        // Extract projects from the user document
+        const projects = user.myProject;
+    
+        res.status(200).json({ projects });
+      } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+      }
+}
+ ];
 
 // Delete a project
 exports.deleteProject = [verifyToken, async (req, res) => {
@@ -113,5 +139,15 @@ exports.deleteProject = [verifyToken, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }];
+
+  //Get User with id
+  exports.retreivebyId = async (req, res) => {
+    try {
+      const project = await Project.findById(req.params.id);
+      res.status(200).json(project);
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  };
 
 

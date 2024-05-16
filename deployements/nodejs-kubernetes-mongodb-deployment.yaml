@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Users\LENOVO\AppData\Local\Microsoft\WinGet\Packages\Kubernetes.kompose_Microsoft.Winget.Source_8wekyb3d8bbwe\kompose.exe convert
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: nodejs-kubernetes-mongodb
+  name: nodejs-kubernetes-mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: nodejs-kubernetes-mongodb
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Users\LENOVO\AppData\Local\Microsoft\WinGet\Packages\Kubernetes.kompose_Microsoft.Winget.Source_8wekyb3d8bbwe\kompose.exe convert
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/backend-idp-default: "true"
+        io.kompose.service: nodejs-kubernetes-mongodb
+    spec:
+      containers:
+        - env:
+            - name: MONGO_DATA_DIR
+              value: /data/db
+            - name: MONGO_LOG_DIR
+              value: /dev/null
+          image: mongo
+          name: nodejs-kubernetes-mongodb
+          ports:
+            - containerPort: 27017
+              hostPort: 23017
+              protocol: TCP
+          resources: {}
+          volumeMounts:
+            - mountPath: /data/db
+              name: nodejs-kubernetes-mongodb-volume
+      restartPolicy: Always
+      volumes:
+        - name: nodejs-kubernetes-mongodb-volume
+          persistentVolumeClaim:
+            claimName: nodejs-kubernetes-mongodb-volume
+status: {}

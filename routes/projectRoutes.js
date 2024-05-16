@@ -8,11 +8,16 @@ const router = express.Router();
 const {
   createProject,
 updateProject,
-deleteProject
+deleteProject,
+retreive,
+retreivebyId
+
 } = require("../controllers/projectController.js");
 
 router.post("/project", createProject);
 router.put('/project/:id', updateProject);
 router.delete('/project/:id', deleteProject);
+router.get("/get",retreive);
+router.get("/get/:id",retreivebyId);
 
 module.exports = router;

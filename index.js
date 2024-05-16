@@ -9,6 +9,7 @@ const { Server } = require('http');
 const cors = require("cors");
 const cookieParser = require('cookie-parser');
 const projectRouter = require('./routes/projectRoutes');
+const K8Route = require('./routes/K8Route');
 
 
 
@@ -28,11 +29,14 @@ app.use('/terraform', TerraformRoutes);
 app.use('/gitlab', gitlabRoutes);
 app.use('/auth',AuthRoutes)
 app.use('/project', projectRouter)
+app.use('/k8', K8Route)
+
+
+
 
 
 // Start the server
 const PORT = process.env.PORT || 3000;
 connectDB();
 app.listen(PORT, () => console.log(`Server running on port ${PORT} , GOING TO THE MOON 🚀 !`));
-
 

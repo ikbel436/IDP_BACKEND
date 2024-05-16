@@ -1,0 +1,26 @@
+
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: my-pod
+    labels:
+          app: my-app
+    tier: frontend
+  spec:
+    containers:
+    - name: my-pod
+      image: nginx:latest
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+          
+      resources:
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      
+        restartPolicy: Never
+  

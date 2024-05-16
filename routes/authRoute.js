@@ -28,7 +28,8 @@ router.post("/login", login, authorizeRoles);
 router.put("/profile/:id", updateUser);
 router.delete("/delete/:id", deleteUser);
 router.post("/logout", logout);
-
+router.post("/forgot",forgotPassword);
+router.post("/reset",resetPassword);
 router.get("/users", allUsers);
 router.get("/user/:id", getSingleUser);
 router.get("/current", isAuth(), (req, res) => {

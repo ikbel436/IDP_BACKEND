@@ -3,41 +3,47 @@ const User = require("../models/User.js");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 const config = require("config");
-const secretOrKey = config.get("secretOrKey");
+const secretOrkey = config.get("secretOrKey");
 const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
 const path = require("path");
-
+const sendEmail = require("../config/sendEmail.js")
 //Password Crypt
 const bcrypt = require("bcryptjs");
 
 // Login User
 exports.login = async (req, res) => {
   const { email, password } = req.body;
-    try { 
-      const user = await User.findOne({ email });
-      if (!user)
-        return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch)
-        return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
-  
-      const payload = {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-      };
-  
-      const accessToken = await jwt.sign(payload, secretOrKey);
-      return res.status(200).json({ accessToken: `${accessToken}`, user });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ errors: error });
-    }
-  };
+  try { 
+     const user = await User.findOne({ email });
+     if (!user)
+       return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
+     const isMatch = await bcrypt.compare(password, user.password);
+     if (!isMatch)
+       return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
  
+     const payload = {
+       id: user._id,
+       name: user.name,
+       email: user.email,
+       phoneNumber: user.phoneNumber,
+       role: user.Role
+     };
+ 
+     const token = await jwt.sign(payload, secretOrkey);
+     // Set the JWT token in a cookie
+     return res.status(200).json({ token: `${token}`, user });
+  } catch (error) {
+     // Log the error to the console for debugging purposes
+     console.error('Error during login:', error);
+     // Return a more informative response to the client
+     return res.status(500).json({ msg: 'Internal server error', error: error.message });
+  }
+ };
+ 
+ 
+
  
  
 
@@ -89,6 +95,7 @@ exports.register = async (req, res) => {
         email,
         password,
         phoneNumber,
+        
       });
   
       const salt = await bcrypt.genSalt(10);
@@ -130,12 +137,14 @@ exports.authorizeRoles = (...roles) => {
   // Update User
   exports.updateUser = async (req, res) => {
     try {
-      const { name, email, phoneNumber } = req.body;
+      const { name, email, phoneNumber,status,description} = req.body;
   
       const updatedUser = await User.findByIdAndUpdate(req.params.id, {
         name,
         email,
         phoneNumber,
+        status,
+        description,
       });
   
       return res.status(201).json({
@@ -182,6 +191,31 @@ exports.authorizeRoles = (...roles) => {
   };
 
   //Forget Password
+  // exports.forgotPassword = async (req, res) => {
+  //   const { email } = req.body;
+  //   try {
+  //     const user = await User.findOne({ email });
+  //     if (!user) {
+  //       return res.status(404).json({ msg: "User not found" });
+  //     }
+
+  //     // Generate reset token
+  //     const resetToken = jwt.sign({ id: user._id }, config.get("RESET_PWD_KEY"), { expiresIn: "36000" });
+
+  //     console.log(resetToken);
+  //     const url = `http://localhost:3000/auth/reset?token=${resetToken}`;
+  //     console.log(url)
+  //     console.log(user.email);
+  //     await sendEmail(user.email, "Password Reset", `To reset your password, click on the following link:${url}`);
+
+
+  //     return res.status(200).json({ msg: "Password reset email sent" });
+  //   } catch (error) {
+  //     console.error(error);
+  //     res.status(500).json({ msg: "Server Error" });
+  //   }
+  // };
+// new forgot password
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -202,8 +236,8 @@ exports.forgotPassword = async (req, res) => {
       port: 587,
       secure: false, // true for 465, false for other ports
       auth: {
-        user: "zaghouani.yosri@gmail.com", // generated ethereal user
-        pass: "", // generated ethereal password
+        user: "ikbelbenmansour4@gmail.com", // generated ethereal user
+        pass: "axva rqhb oqas fmuh", // generated ethereal password
       },
       tls: { rejectUnauthorized: false },
     });
@@ -396,7 +430,11 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
       <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 60px;font-family:'Raleway',sans-serif;" align="left">
         
   <div class="v-font-size" style="color: #1386e5; line-height: 140%; text-align: left; word-wrap: break-word;">
+<<<<<<< HEAD
+    <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>http://localhost:4200/reset-password/${token}</p></link></strong></span></span></p>
+=======
     <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>${Client_URL}/resetpassword/${accessToken}</p></link></strong></span></span></p>
+>>>>>>> c820c813c89c5a16e5dd480486bf69d6c4208ebc
   </div>
 
       </td>
@@ -590,11 +628,12 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     return res.status(400).json({ error: error.message });
   }
 };
+  
 //Reset Password
 exports.resetPassword = async (req, res) => {
   const { resetLink, newPass } = req.body;
   if (resetLink && typeof resetLink === "string") {
-    jwt.verify(resetLink, RESET_PWD_KEY, function (err, decodedData) {
+    jwt.verify(resetLink, RESET_PWD_KEY, function (err, decodedDatra) {
       if (err) {
         return res.status(401).json({ err: "Incorrect accessToken/expired" });
       }
@@ -654,6 +693,6 @@ exports.uploadImage = async (req, res) => {
 exports.getImage = async (req, res) => {
   const { userId, imageName } = req.params;
   res.sendFile(
-    `C:/Users/zagho/OneDrive/Documents/GitHub/BackAPPX/uploads/${userId}/${imageName}`
+    `c:/Users/user/Desktop/backend_IDP/Backend-IDP/uploads/${userId}/${imageName}`
   );
 };

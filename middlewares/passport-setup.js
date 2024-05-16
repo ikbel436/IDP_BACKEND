@@ -15,9 +15,9 @@ const extractJwtFromCookie = (req) => {
 
 
 const opts = {
- jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
- secretOrKey,
-};
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey,
+ };
 
 passport.initialize();
 
