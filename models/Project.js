@@ -14,7 +14,7 @@ const projectSchema = mongoose.Schema({
     type: Date,
     default: new Date(),
   },
-
+  fileUrl: String,
 });
 
 module.exports = Project = mongoose.model("project", projectSchema);
