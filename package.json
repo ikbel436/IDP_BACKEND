@@ -11,12 +11,13 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.523.0",
-    "aws-sdk": "^2.1567.0",
+    "archiver": "^7.0.1",
+    "aws-sdk": "^2.1621.0",
     "axios": "^1.6.7",
     "bcrypt": "^5.1.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
-    "cloudinary": "^1.32.0",
+    "cloudinary": "^1.41.3",
     "config": "^3.3.8",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -37,6 +38,8 @@
     "passport-jwt": "^4.0.0",
     "simple-git": "^3.22.0",
     "socket.io": "^4.6.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
     "terraform-generator": "^6.2.0"
   }
 }
