@@ -38,6 +38,8 @@
     "passport-jwt": "^4.0.0",
     "simple-git": "^3.22.0",
     "socket.io": "^4.6.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
     "terraform-generator": "^6.2.0"
   }
 }

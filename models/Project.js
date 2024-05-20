@@ -14,7 +14,7 @@ const projectSchema = mongoose.Schema({
     type: Date,
     default: new Date(),
   },
-  fileUrl: String,
+  //fileUrl: String,
   backendDockerImage: String, // Docker Hub image name for the backend
   frontendDockerImage: String, // Docker Hub image name for the frontend
   databaseType: {

@@ -10,7 +10,7 @@ const cors = require("cors");
 const cookieParser = require('cookie-parser');
 const projectRouter = require('./routes/projectRoutes');
 const K8Route = require('./routes/K8Route');
-
+const { specs, swaggerUi } = require('./swagger');
 
 
 const corsOptions = {
@@ -23,7 +23,7 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 
 
-
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 // Use the routes
 app.use('/terraform', TerraformRoutes);
 app.use('/gitlab', gitlabRoutes);
