@@ -1,0 +1,146 @@
+openapi: 3.0.0
+info:
+  title: API Documentation
+  version: 1.0.0
+paths:
+  /register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: User registered successfully
+        '400':
+          description: Bad request
+  /login:
+    post:
+      summary: Login a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: User logged in successfully
+        '401':
+          description: Unauthorized
+  /profile/{id}:
+    put:
+      summary: Update user profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: User profile updated successfully
+        '404':
+          description: User not found
+  /delete/{id}:
+    delete:
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully
+        '404':
+          description: User not found
+  /logout:
+    post:
+      summary: Logout a user
+      responses:
+        '200':
+          description: User logged out successfully
+  /forgot:
+    post:
+      summary: Forgot password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Password reset link sent
+  /reset:
+    post:
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Password reset successfully
+  /users:
+    get:
+      summary: Get all users
+      responses:
+        '200':
+          description: List of users
+  /user/{id}:
+    get:
+      summary: Get single user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details
+        '404':
+          description: User not found
+  /current:
+    get:
+      summary: Get current authenticated user
+      responses:
+        '200':
+          description: Current user details
