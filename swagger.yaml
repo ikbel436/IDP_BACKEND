@@ -3,7 +3,7 @@ info:
   title: API Documentation
   version: 1.0.0
 paths:
-  /register:
+  /auth/register:
     post:
       summary: Register a new user
       requestBody:
@@ -13,18 +13,24 @@ paths:
             schema:
               type: object
               properties:
-                username:
+                name:
                   type: string
                 password:
                   type: string
                 email:
                   type: string
+                image:
+                  type: string
+                description:
+                  type: string
+                phoneNumber:
+                  type: number
       responses:
         '200':
           description: User registered successfully
         '400':
           description: Bad request
-  /login:
+  /auth/login:
     post:
       summary: Login a user
       requestBody:
@@ -34,16 +40,17 @@ paths:
             schema:
               type: object
               properties:
-                username:
+                email:
                   type: string
                 password:
                   type: string
+               
       responses:
         '200':
           description: User logged in successfully
         '401':
           description: Unauthorized
-  /profile/{id}:
+  /auth/profile/{id}:
     put:
       summary: Update user profile
       parameters:
@@ -59,16 +66,23 @@ paths:
             schema:
               type: object
               properties:
-                username:
+                name:
                   type: string
                 email:
                   type: string
+                image:
+                  type: string
+                description:
+                  type: string
+                phoneNumber:
+                  type: number
+
       responses:
         '200':
           description: User profile updated successfully
         '404':
           description: User not found
-  /delete/{id}:
+  /auth/delete/{id}:
     delete:
       summary: Delete a user
       parameters:
@@ -82,13 +96,13 @@ paths:
           description: User deleted successfully
         '404':
           description: User not found
-  /logout:
+  /auth/logout:
     post:
       summary: Logout a user
       responses:
         '200':
           description: User logged out successfully
-  /forgot:
+  /auth/forgot:
     post:
       summary: Forgot password
       requestBody:
@@ -103,7 +117,7 @@ paths:
       responses:
         '200':
           description: Password reset link sent
-  /reset:
+  /auth/reset:
     post:
       summary: Reset password
       requestBody:
@@ -118,13 +132,13 @@ paths:
       responses:
         '200':
           description: Password reset successfully
-  /users:
+  /auth/users:
     get:
       summary: Get all users
       responses:
         '200':
           description: List of users
-  /user/{id}:
+  /auth/user/{id}:
     get:
       summary: Get single user
       parameters:
@@ -138,9 +152,17 @@ paths:
           description: User details
         '404':
           description: User not found
-  /current:
+  /auth/current:
     get:
       summary: Get current authenticated user
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Current user details
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
