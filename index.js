@@ -28,7 +28,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use('/terraform', TerraformRoutes);
 app.use('/gitlab', gitlabRoutes);
 app.use('/auth',AuthRoutes)
-app.use('/project', projectRouter)
+app.use('', projectRouter)
 app.use('/k8', K8Route)
 
 
