@@ -1,0 +1,430 @@
+openapi: 3.0.0
+info:
+  title: API Documentation
+  version: 1.0.0
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                password:
+                  type: string
+                email:
+                  type: string
+                image:
+                  type: string
+                description:
+                  type: string
+                phoneNumber:
+                  type: number
+      responses:
+        '200':
+          description: User registered successfully
+        '400':
+          description: Bad request
+  /auth/login:
+    post:
+      summary: Login a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: User logged in successfully
+        '401':
+          description: Unauthorized
+  /auth/profile/{id}:
+    put:
+      summary: Update user profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                image:
+                  type: string
+                description:
+                  type: string
+                phoneNumber:
+                  type: number
+      responses:
+        '200':
+          description: User profile updated successfully
+        '404':
+          description: User not found
+  /auth/delete/{id}:
+    delete:
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully
+        '404':
+          description: User not found
+  /auth/logout:
+    post:
+      summary: Logout a user
+      responses:
+        '200':
+          description: User logged out successfully
+  /auth/forgot:
+    post:
+      summary: Forgot password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Password reset link sent
+  /auth/reset:
+    post:
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Password reset successfully
+  /auth/users:
+    get:
+      summary: Get all users
+      responses:
+        '200':
+          description: List of users
+  /auth/user/{id}:
+    get:
+      summary: Get single user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details
+        '404':
+          description: User not found
+  /auth/current:
+    get:
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user details
+  /project:
+    post:
+      summary: Create a new project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                reference:
+                  type: string
+                provider:
+                  type: string
+                lien:
+                  type: string
+                description:
+                  type: string
+                backendDockerImage:
+                  type: string
+                frontendDockerImage:
+                  type: string
+                databaseType:
+                  type: string
+                  enum: ['MySQL', 'MongoDB', 'PostgreSQL', 'SQLite', 'Other']
+      responses:
+        '200':
+          description: Project created successfully
+        '400':
+          description: Bad request
+  /project/{id}:
+    put:
+      summary: Update a project
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                reference:
+                  type: string
+                provider:
+                  type: string
+                lien:
+                  type: string
+                description:
+                  type: string
+                backendDockerImage:
+                  type: string
+                frontendDockerImage:
+                  type: string
+                databaseType:
+                  type: string
+                  enum: ['MySQL', 'MongoDB', 'PostgreSQL', 'SQLite', 'Other']
+      responses:
+        '200':
+          description: Project updated successfully
+        '404':
+          description: Project not found
+  /projects/{id}:
+    delete:
+      summary: Delete a project
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project deleted successfully
+        '404':
+          description: Project not found
+  /get:
+    get:
+      summary: Retrieve all projects
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of projects
+  /get/{id}:
+    get:
+      summary: Retrieve a project by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project details
+        '404':
+          description: Project not found
+
+  /terraform/generate-terraform:
+    post:
+      summary: Generate Terraform configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ec2Instance:
+                  type: boolean
+                region:
+                  type: string
+                ami:
+                  type: string
+                instance_type:
+                  type: string
+                name:
+                  type: string
+                generateS3Module:
+                  type: boolean
+                s3BucketName:
+                  type: string
+      responses:
+        '200':
+          description: Terraform configuration generated successfully
+        '400':
+          description: Bad request
+  /terraform/destroy-instance:
+    post:
+      summary: Destroy a Terraform-managed instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                region:
+                  type: string
+                instance_id:
+                  type: string
+      responses:
+        '200':
+          description: Instance destroyed successfully
+        '400':
+          description: Bad request
+  /k8/generate-pod:
+    post:
+      summary: Generate a Kubernetes pod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                podName:
+                  type: string
+                image:
+                  type: string
+                ports:
+                  type: array
+                  items:
+                    type: integer
+                cpuLimit:
+                  type: string
+                cpuRequest:
+                  type: string
+                memoryLimit:
+                  type: string
+                memoryRequest:
+                  type: string
+                label:
+                  type: string
+                tierlbl:
+                  type: string
+      responses:
+        '200':
+          description: Kubernetes pod generated successfully
+        '400':
+          description: Bad request
+  /k8/generate-replicaset:
+    post:
+      summary: Generate a Kubernetes ReplicaSet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ReplicaSetName:
+                  type: string
+                ReplicaSetnbr:
+                  type: string
+                image:
+                  type: string
+                ports:
+                  type: array
+                  items:
+                    type: integer
+                cpuLimit:
+                  type: string
+                cpuRequest:
+                  type: string
+                memoryLimit:
+                  type: string
+                memoryRequest:
+                  type: string
+                label:
+                  type: string
+                tierlbl:
+                  type: string
+      responses:
+        '200':
+          description: Kubernetes ReplicaSet generated successfully
+        '400':
+          description: Bad request 
+  /generate-gitlab-ci:
+    post:
+      summary: Generate GitLab CI configuration
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                visibility:
+                  type: string
+                tools:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: GitLab CI configuration generated successfully
+        '400':
+          description: Bad request
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: token

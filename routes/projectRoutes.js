@@ -16,7 +16,7 @@ retreivebyId
 
 router.post("/project", createProject);
 router.put('/project/:id', updateProject);
-router.delete('/project/:id', deleteProject);
+router.delete('/projects/:id', deleteProject);
 router.get("/get",retreive);
 router.get("/get/:id",retreivebyId);
 
