@@ -230,6 +230,7 @@ exports.forgotPassword = async (req, res) => {
     const accessToken = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
       expiresIn: "20m",
     });
+    console.log(accessToken)
 
     let transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -430,11 +431,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
       <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 60px;font-family:'Raleway',sans-serif;" align="left">
         
   <div class="v-font-size" style="color: #1386e5; line-height: 140%; text-align: left; word-wrap: break-word;">
-<<<<<<< HEAD
-    <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>http://localhost:4200/reset-password/${token}</p></link></strong></span></span></p>
-=======
     <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>${Client_URL}/resetpassword/${accessToken}</p></link></strong></span></span></p>
->>>>>>> c820c813c89c5a16e5dd480486bf69d6c4208ebc
   </div>
 
       </td>
