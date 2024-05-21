@@ -16,12 +16,13 @@ exports.Authpage = (req, res) => {
       "https://github.com/login/oauth/authorize?client_id=" +
       config.CLIENT_ID+
       "&redirect_uri=" +
-      config.REDIRECT_URI +
+      encodeURIComponent(config.REDIRECT_URI) + // Make sure to encode the URI
       "&scope=read:user&allow_signup=" +
       true +
       "&state=" +
       state,
-  });
+});
+
 };
 
 exports.getAcessToken = (req, res) => {
@@ -51,7 +52,7 @@ exports.getAcessToken = (req, res) => {
         console.log("this is the code",config.REDIRECT_URI)
         if (resp.data.access_token) {
           // Directly send the access token in the response
-          res.json({ accessToken: resp.data.access_token });
+          res.json({ GitToken: resp.data.access_token });
         } else {
           res.status(400).json({ error: "Access token not found" });
         }
@@ -62,12 +63,12 @@ exports.getAcessToken = (req, res) => {
   };
   
   exports.getGithubUserDetails = (req, res) => {
-    if (req.query.accessToken) { // Assuming accessToken is passed as a query parameter
-      console.log("this is the code",req.query.accessToken)
+    if (req.query.GitToken) { // Assuming GitToken is passed as a query parameter
+      console.log("this is the code",req.query.GitToken)
        axios({
           url: "https://api.github.com/user",
           method: "GET",
-          headers: { Authorization: "token " + req.query.accessToken },
+          headers: { Authorization: "token " + req.query.GitToken },
         })
        .then(function (resp) {
           res.json(resp.data); // Directly send the user details
