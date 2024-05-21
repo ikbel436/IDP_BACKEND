@@ -11,7 +11,12 @@ const path = require("path");
 const sendEmail = require("../config/sendEmail.js")
 //Password Crypt
 const bcrypt = require("bcryptjs");
-
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({ 
+  cloud_name: 'dms2pptzs', 
+  api_key: '234343386118662', 
+  api_secret: '3sKIhiWIOna-LmiAK7XO2_v5Kbg' 
+}); 
 // Login User
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -661,24 +666,45 @@ exports.resetPassword = async (req, res) => {
     return res.status(401).json({ error: "Invalid or missing reset link" });
   }
 };
+          
 
 
 exports.uploadImage = async (req, res) => {
   const { userId } = req.params;
 
-  if (req.file && req.file.path) {
-    const fileUrl = path.basename(req.file.path);
-    console.log("image path", fileUrl);
-    const updatedUser = await User.findByIdAndUpdate(userId, {
-      image: fileUrl,
-    });
+  if (req.file) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: `uploads/${userId}` },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
 
-    return res.json({
-      status: "ok",
-      success: true,
-      url: fileUrl,
-      user: updatedUser,
-    });
+      const fileUrl = result.secure_url;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { image: fileUrl },
+        { new: true }
+      );
+
+      return res.json({
+        status: "ok",
+        success: true,
+        url: fileUrl,
+        user: updatedUser,
+      });
+    } catch (error) {
+      return res.status(500).json({ status: 'error', message: error.message });
+    }
   } else {
     return res.status(400).json({
       status: "error",
@@ -686,10 +712,55 @@ exports.uploadImage = async (req, res) => {
     });
   }
 };
+// exports.uploadImage = async (req, res) => {
+//   const { userId } = req.params;
 
+//   if (req.file && req.file.path) {
+//     const fileUrl = path.basename(req.file.path);
+//     console.log("image path", fileUrl);
+//     const updatedUser = await User.findByIdAndUpdate(userId, {
+//       image: fileUrl,
+//     });
+
+//     return res.json({
+//       status: "ok",
+//       success: true,
+//       url: fileUrl,
+//       user: updatedUser,
+//     });
+//   } else {
+//     return res.status(400).json({
+//       status: "error",
+//       message: "File not found",
+//     });
+//   }
+// };
+
+// exports.getImage = async (req, res) => {
+//   const { userId, imageName } = req.params;
+//   res.sendFile(
+//     `c:/Users/user/Desktop/backend_IDP/Backend-IDP/uploads/${userId}/${imageName}`
+//   );
+// };
 exports.getImage = async (req, res) => {
   const { userId, imageName } = req.params;
-  res.sendFile(
-    `c:/Users/user/Desktop/backend_IDP/Backend-IDP/uploads/${userId}/${imageName}`
-  );
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user || !user.image) {
+      return res.status(404).json({ status: "error", message: "Image not found" });
+    }
+
+    // Assuming user.image contains the Cloudinary URL
+    const imageUrl = user.image;
+
+    return res.json({
+      status: "ok",
+      success: true,
+      url: imageUrl,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
+  }
 };
