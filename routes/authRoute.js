@@ -3,7 +3,7 @@ const { registerRules, validator } = require("../middlewares/validator.js");
 const isAuth = require("../middlewares/passport-setup.js");
 const multer = require("multer");
 const fs = require("fs");
-
+const cloudinary = require('cloudinary').v2;
 const {
     register,
     login,
@@ -39,17 +39,25 @@ router.get("/current", isAuth(), (req, res) => {
 
   //upload Config 
 
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      const userId = req.params.userId;
-      const uploadDir = `./uploads/${userId}`;
-      fs.mkdirSync(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-      cb(null, Date.now() + "--" + file.originalname);
-    },
-  });
+          
+  cloudinary.config({ 
+    cloud_name: 'dms2pptzs', 
+    api_key: '234343386118662', 
+    api_secret: '3sKIhiWIOna-LmiAK7XO2_v5Kbg' 
+  }); 
+
+  const storage = multer.memoryStorage();
+  // const storage = multer.diskStorage({
+  //   destination: (req, file, cb) => {
+  //     const userId = req.params.userId;
+  //     const uploadDir = `./uploads/${userId}`;
+  //     fs.mkdirSync(uploadDir, { recursive: true });
+  //     cb(null, uploadDir);
+  //   },
+  //   filename: function (req, file, cb) {
+  //     cb(null, Date.now() + "--" + file.originalname);
+  //   },
+  // });
   
   const fileFilter = (req, file, cb) => {
     let filetype = "";
