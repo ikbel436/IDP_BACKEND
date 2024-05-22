@@ -31,10 +31,11 @@ async function fetchRepositoriesFromBitbucket(accessToken, workspace) {
         // Map over the repositories array to include additional details
         const enhancedRepositories = response.data.values.map(repo => ({
             name: repo.name,
-            description: repo.description,
+            description: repo.description || repo.summary,
             createdAt: repo.created_on,
-            lastUpdated: repo.last_updated,
+            lastUpdated: repo.updated_on,
             cloneUrl: repo.links.clone[0].href,
+            language: repo.language,
         }));
 
         return enhancedRepositories; // Corrected to return the repositories instead of sending them in the response
