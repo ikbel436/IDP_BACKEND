@@ -22,9 +22,6 @@ const corsOptions = {
   origin: 'http://localhost:4200',
   credentials: true // Allow cookies to be sent with requests
 };
-origin: "http://localhost:4200",
-  credentials: true, // Allow cookies to be sent with requests
-};
 
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
