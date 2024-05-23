@@ -1,3 +1,5 @@
+/* The above code is a Node.js application that handles user authentication and user management
+                                          functionalities.*/
 
 const User = require("../models/User.js");
 const jwt = require("jsonwebtoken");
@@ -8,58 +10,62 @@ const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
 const path = require("path");
-const sendEmail = require("../config/sendEmail.js")
+const sendEmail = require("../config/sendEmail.js");
 //Password Crypt
 const bcrypt = require("bcryptjs");
-
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dms2pptzs",
+  api_key: "234343386118662",
+  api_secret: "3sKIhiWIOna-LmiAK7XO2_v5Kbg",
+});
 // Login User
 exports.login = async (req, res) => {
   const { email, password } = req.body;
-  try { 
-     const user = await User.findOne({ email });
-     if (!user)
-       return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
-     const isMatch = await bcrypt.compare(password, user.password);
-     if (!isMatch)
-       return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
- 
-     const payload = {
-       id: user._id,
-       name: user.name,
-       email: user.email,
-       phoneNumber: user.phoneNumber,
-       role: user.Role
-     };
- 
-     const token = await jwt.sign(payload, secretOrkey);
-     // Set the JWT token in a cookie
-     return res.status(200).json({ token: `${token}`, user });
+  try {
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
+
+    const payload = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.Role,
+      address: user.address,
+      birthDate: user.birthDate,
+      codePostal: user.codePostal,
+      country: user.country,
+    };
+
+    const token = await jwt.sign(payload, secretOrkey);
+    // Set the JWT token in a cookie
+    return res.status(200).json({ token: `${token}`, user });
   } catch (error) {
-     // Log the error to the console for debugging purposes
-     console.error('Error during login:', error);
-     // Return a more informative response to the client
-     return res.status(500).json({ msg: 'Internal server error', error: error.message });
+    // Log the error to the console for debugging purposes
+    console.error("Error during login:", error);
+    // Return a more informative response to the client
+    return res
+      .status(500)
+      .json({ msg: "Internal server error", error: error.message });
   }
- };
- 
- 
+};
 
- 
- 
-
-
-
-  // Register User
+// Register User
 exports.register = async (req, res) => {
-    const { name, email, phoneNumber, password } = req.body;
-  
-    try {
-      const searchRes = await User.findOne({ email });
-      if (searchRes)
-        return res
-          .status(401)
-          .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
-  
+  const { name, email, phoneNumber, password } = req.body;
+
+  try {
+    const searchRes = await User.findOne({ email });
+    if (searchRes)
+      return res
+        .status(401)
+        .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
+
     //   // create reusable transporter object using the default SMTP transport
     //   let transporter = nodemailer.createTransport({
     //     host: "smtp.gmail.com",
@@ -71,7 +77,7 @@ exports.register = async (req, res) => {
     //     },
     //     tls: { rejectUnothorized: false },
     //   });
-  
+
     //   // send mail with defined transport object
     //   let info = await transporter.sendMail({
     //     from: '"Node mailer contact" <zaghouani.yosri@gmail.com>', // sender address
@@ -80,141 +86,136 @@ exports.register = async (req, res) => {
     //     text: "Hello world?", // plain text body
     //     html: "<b>Hello world?</b>", // html body
     //   });
-  
+
     //   console.log("Message sent: %s", info.messageId);
     //   // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-  
+
     //   // Preview only available when sending through an Ethereal account
     //   console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
     //   // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
-  
+
     //   console.log("email has been sent");
-  
-      const newUser = new User({
-        name,
-        email,
-        password,
-        phoneNumber,
-        
-      });
-  
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(password, salt);
-      newUser.password = hash;
-  
-      await newUser.save();
-      newUser => console.log(newUser);
 
-      res.status(201).json(newUser);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ errors: error });
-    }
-  };
+    const newUser = new User({
+      name,
+      email,
+      password,
+      phoneNumber,
+    });
 
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+    newUser.password = hash;
 
-  // Logout endpoint
-exports.logout = ((req, res) => {
+    await newUser.save();
+    (newUser) => console.log(newUser);
+
+    res.status(201).json(newUser);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ errors: error });
+  }
+};
+
+// Logout endpoint
+exports.logout = (req, res) => {
   // Clear the JWT token cookie
-  res.cookie('jwt', '', { expires: new Date(0), path: '/', secure: true, httpOnly: true, sameSite: 'strict' });
-  res.status(200).send('Logged out');
-});
+  res.cookie("jwt", "", {
+    expires: new Date(0),
+    path: "/",
+    secure: true,
+    httpOnly: true,
+    sameSite: "strict",
+  });
+  res.status(200).send("Logged out");
+};
 
-  // Handle user roles
+// Handle user roles
 exports.authorizeRoles = (...roles) => {
-    return (req, res, next) => {
-      const user = User.findById(req.params.id);
-      if (!roles.includes(user.role)) {
-        return next(
-          res.status(403).json({
-            msg: `Role (${user.role}) is not allowed to acces this resource`,
-          })
-        );
-      }
-    };
-  };
-  
-  // Update User
-  exports.updateUser = async (req, res) => {
-    try {
-      const { name, email, phoneNumber,status,description} = req.body;
-  
-      const updatedUser = await User.findByIdAndUpdate(req.params.id, {
-        name,
-        email,
-        phoneNumber,
-        status,
-        description,
-      });
-  
-      return res.status(201).json({
-        msg: "L'utilisateur a été modifié avec succès",
-        user: updatedUser,
-      });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
+  return (req, res, next) => {
+    const user = User.findById(req.params.id);
+    if (!roles.includes(user.role)) {
+      return next(
+        res.status(403).json({
+          msg: `Role (${user.role}) is not allowed to acces this resource`,
+        })
+      );
     }
   };
-  
-  // Get all users
-  exports.allUsers = async (req, res) => {
-    try {
-      const users = await User.find();
-      res.status(200).json({
-        users,
-      });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
-    }
-  };
-  //Delete a User
-  exports.deleteUser = async (req, res) => {
-    try {
-      await User.findByIdAndDelete(req.params.id);
-      res.json({ msg: "utilisateur supprimé avec succès" });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
-    }
-  };
-  
-  //Get User with id
-  exports.getSingleUser = async (req, res) => {
-    try {
-      const user = await User.findById(req.params.id);
-      res.status(200).json({
-        succes: true,
-        user,
-      });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
-    }
-  };
+};
 
-  //Forget Password
-  // exports.forgotPassword = async (req, res) => {
-  //   const { email } = req.body;
-  //   try {
-  //     const user = await User.findOne({ email });
-  //     if (!user) {
-  //       return res.status(404).json({ msg: "User not found" });
-  //     }
+// Update User
+exports.updateUser = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      phoneNumber,
+      status,
+      description,
+      birthDate,
+      codePostal,
+      country,
+      address,
+      city,
+    } = req.body;
 
-  //     // Generate reset token
-  //     const resetToken = jwt.sign({ id: user._id }, config.get("RESET_PWD_KEY"), { expiresIn: "36000" });
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, {
+      name,
+      email,
+      phoneNumber,
+      status,
+      description,
+      address,
+      birthDate,
+      codePostal,
+      country,
+      city,
+    });
 
-  //     console.log(resetToken);
-  //     const url = `http://localhost:3000/auth/reset?token=${resetToken}`;
-  //     console.log(url)
-  //     console.log(user.email);
-  //     await sendEmail(user.email, "Password Reset", `To reset your password, click on the following link:${url}`);
+    return res.status(201).json({
+      msg: "L'utilisateur a été modifié avec succès",
+      user: updatedUser,
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
 
+// Get all users
+exports.allUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.status(200).json({
+      users,
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
+//Delete a User
+exports.deleteUser = async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ msg: "utilisateur supprimé avec succès" });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
 
-  //     return res.status(200).json({ msg: "Password reset email sent" });
-  //   } catch (error) {
-  //     console.error(error);
-  //     res.status(500).json({ msg: "Server Error" });
-  //   }
-  // };
+//Get User with id
+exports.getSingleUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    res.status(200).json({
+      succes: true,
+      user,
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
+
 // new forgot password
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -230,6 +231,7 @@ exports.forgotPassword = async (req, res) => {
     const accessToken = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
       expiresIn: "20m",
     });
+    console.log(accessToken);
 
     let transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -247,370 +249,8 @@ exports.forgotPassword = async (req, res) => {
       to: email,
       subject: "Account Activation link",
       text: "Account Activation link",
-      html: `<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-<head>
-<!--[if gte mso 9]>
-<xml>
-  <o:OfficeDocumentSettings>
-    <o:AllowPNG/>
-    <o:PixelsPerInch>96</o:PixelsPerInch>
-  </o:OfficeDocumentSettings>
-</xml>
-<![endif]-->
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="x-apple-disable-message-reformatting">
-  <!--[if !mso]><!--><meta http-equiv="X-UA-Compatible" content="IE=edge"><!--<![endif]-->
-  <title></title>
-  
-    <style type="text/css">
-      @media only screen and (min-width: 620px) {
-  .u-row {
-    width: 600px !important;
-  }
-  .u-row .u-col {
-    vertical-align: top;
-  }
-
-  .u-row .u-col-100 {
-    width: 600px !important;
-  }
-
-}
-
-@media (max-width: 620px) {
-  .u-row-container {
-    max-width: 100% !important;
-    padding-left: 0px !important;
-    padding-right: 0px !important;
-  }
-  .u-row .u-col {
-    min-width: 320px !important;
-    max-width: 100% !important;
-    display: block !important;
-  }
-  .u-row {
-    width: 100% !important;
-  }
-  .u-col {
-    width: 100% !important;
-  }
-  .u-col > div {
-    margin: 0 auto;
-  }
-}
-body {
-  margin: 0;
-  padding: 0;
-}
-
-table,
-tr,
-td {
-  vertical-align: top;
-  border-collapse: collapse;
-}
-
-p {
-  margin: 0;
-}
-
-.ie-container table,
-.mso-container table {
-  table-layout: fixed;
-}
-
-* {
-  line-height: inherit;
-}
-
-a[x-apple-data-detectors='true'] {
-  color: inherit !important;
-  text-decoration: none !important;
-}
-
-table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: underline; } @media (max-width: 480px) { #u_content_image_1 .v-container-padding-padding { padding: 40px 10px 10px !important; } #u_content_image_1 .v-src-width { width: auto !important; } #u_content_image_1 .v-src-max-width { max-width: 50% !important; } #u_content_heading_1 .v-container-padding-padding { padding: 10px 10px 20px !important; } #u_content_heading_1 .v-font-size { font-size: 22px !important; } #u_content_heading_2 .v-container-padding-padding { padding: 40px 10px 10px !important; } #u_content_text_2 .v-container-padding-padding { padding: 10px !important; } #u_content_heading_3 .v-container-padding-padding { padding: 10px !important; } #u_content_button_1 .v-container-padding-padding { padding: 30px 10px 40px !important; } #u_content_button_1 .v-size-width { width: 65% !important; } #u_content_social_1 .v-container-padding-padding { padding: 40px 10px 10px !important; } #u_content_text_deprecated_1 .v-container-padding-padding { padding: 10px 10px 20px !important; } }
-    </style>
-  
-  
-
-<!--[if !mso]><!--><link href="https://fonts.googleapis.com/css?family=Raleway:400,700&display=swap" rel="stylesheet" type="text/css"><!--<![endif]-->
-
-</head>
-
-<body class="clean-body u_body" style="margin: 0;padding: 0;-webkit-text-size-adjust: 100%;background-color: #f9f9ff;color: #000000">
-  <!--[if IE]><div class="ie-container"><![endif]-->
-  <!--[if mso]><div class="mso-container"><![endif]-->
-  <table id="u_body" style="border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;min-width: 320px;Margin: 0 auto;background-color: #f9f9ff;width:100%" cellpadding="0" cellspacing="0">
-  <tbody>
-  <tr style="vertical-align: top">
-    <td style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-    <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background-color: #f9f9ff;"><![endif]-->
-    
-
-<div class="u-row-container" style="padding: 0px;background-color: transparent">
-  <div class="u-row" style="Margin: 0 auto;min-width: 320px;max-width: 600px;overflow-wrap: break-word;word-wrap: break-word;word-break: break-word;background-color: transparent;">
-    <div style="border-collapse: collapse;display: table;width: 100%;height: 100%;background-color: transparent;">
-      <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding: 0px;background-color: transparent;" align="center"><table cellpadding="0" cellspacing="0" border="0" style="width:600px;"><tr style="background-color: transparent;"><![endif]-->
-      
-<!--[if (mso)|(IE)]><td align="center" width="600" style="background-color: #ffffff;width: 600px;padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;" valign="top"><![endif]-->
-<div class="u-col u-col-100" style="max-width: 320px;min-width: 600px;display: table-cell;vertical-align: top;">
-  <div style="background-color: #ffffff;height: 100%;width: 100% !important;">
-  <!--[if (!mso)&(!IE)]><!--><div style="box-sizing: border-box; height: 100%; padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;"><!--<![endif]-->
-  
-<table id="u_content_image_1" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:60px 10px 10px;font-family:'Raleway',sans-serif;" align="left">
-        
-<table width="100%" cellpadding="0" cellspacing="0" border="0">
-  <tr>
-    <td style="padding-right: 0px;padding-left: 0px;" align="center">
-      
-      <img align="center" border="0" src="https://res.cloudinary.com/dr63ndxik/image/upload/v1678111332/image-2_gqtmv6.png" alt="image" title="image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 35%;max-width: 203px;" width="203" class="v-src-width v-src-max-width"/>
-      
-    </td>
-  </tr>
-</table>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<table id="u_content_heading_1" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 10px 30px;font-family:'Raleway',sans-serif;" align="left">
-        
-  <h1 class="v-font-size" style="margin: 0px; line-height: 140%; text-align: center; word-wrap: break-word; font-size: 28px; "><strong>Forget password ?</strong></h1>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-  <!--[if (!mso)&(!IE)]><!--></div><!--<![endif]-->
-  </div>
-</div>
-<!--[if (mso)|(IE)]></td><![endif]-->
-      <!--[if (mso)|(IE)]></tr></table></td></tr></table><![endif]-->
-    </div>
-  </div>
-</div>
-
-
-
-<div class="u-row-container" style="padding: 0px;background-color: transparent">
-  <div class="u-row" style="Margin: 0 auto;min-width: 320px;max-width: 600px;overflow-wrap: break-word;word-wrap: break-word;word-break: break-word;background-color: transparent;">
-    <div style="border-collapse: collapse;display: table;width: 100%;height: 100%;background-color: transparent;">
-      <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding: 0px;background-color: transparent;" align="center"><table cellpadding="0" cellspacing="0" border="0" style="width:600px;"><tr style="background-color: transparent;"><![endif]-->
-      
-<!--[if (mso)|(IE)]><td align="center" width="600" style="background-color: #ffffff;width: 600px;padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;" valign="top"><![endif]-->
-<div class="u-col u-col-100" style="max-width: 320px;min-width: 600px;display: table-cell;vertical-align: top;">
-  <div style="background-color: #ffffff;height: 100%;width: 100% !important;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;">
-  <!--[if (!mso)&(!IE)]><!--><div style="box-sizing: border-box; height: 100%; padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;"><!--<![endif]-->
-  
-<table id="u_content_heading_2" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:40px 60px 10px;font-family:'Raleway',sans-serif;" align="left">
-        
-  <h1 class="v-font-size" style="margin: 0px; line-height: 140%; text-align: left; word-wrap: break-word; font-size: 16px; ">If you've lost your password or wish to reset it, use the link below to get started:</h1>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<table id="u_content_text_2" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 60px;font-family:'Raleway',sans-serif;" align="left">
-        
-  <div class="v-font-size" style="color: #1386e5; line-height: 140%; text-align: left; word-wrap: break-word;">
-<<<<<<< HEAD
-    <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>http://localhost:4200/reset-password/${token}</p></link></strong></span></span></p>
-=======
-    <p style="line-height: 140%;"><span style="text-decoration: underline; line-height: 19.6px;"><span style="line-height: 19.6px;"><strong><link><p>${Client_URL}/resetpassword/${accessToken}</p></link></strong></span></span></p>
->>>>>>> c820c813c89c5a16e5dd480486bf69d6c4208ebc
-  </div>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<table id="u_content_heading_3" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 60px;font-family:'Raleway',sans-serif;" align="left">
-        
-  <h1 class="v-font-size" style="margin: 0px; line-height: 140%; text-align: left; word-wrap: break-word; font-size: 14px; ">Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation.Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation.</h1>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<table id="u_content_button_1" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:30px 10px 40px;font-family:'Raleway',sans-serif;" align="left">
-        
-  <!--[if mso]><style>.v-button {background: transparent !important;}</style><![endif]-->
-<div align="center">
-  <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://www.unlayer.com" style="height:37px; v-text-anchor:middle; width:220px;" arcsize="67.5%"  stroke="f" fillcolor="#fdb441"><w:anchorlock/><center style="color:#000000;font-family:'Raleway',sans-serif;"><![endif]-->  
-    <a href="https://www.unlayer.com" target="_blank" class="v-button v-size-width v-font-size" style="box-sizing: border-box;display: inline-block;font-family:'Raleway',sans-serif;text-decoration: none;-webkit-text-size-adjust: none;text-align: center;color: #000000; background-color: #fdb441; border-radius: 25px;-webkit-border-radius: 25px; -moz-border-radius: 25px; width:38%; max-width:100%; overflow-wrap: break-word; word-break: break-word; word-wrap:break-word; mso-border-alt: none;font-size: 14px;">
-      <span style="display:block;padding:10px 20px;line-height:120%;"><span style="line-height: 16.8px;">Reset Your Password</span></span>
-    </a>
-  <!--[if mso]></center></v:roundrect><![endif]-->
-</div>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-  <!--[if (!mso)&(!IE)]><!--></div><!--<![endif]-->
-  </div>
-</div>
-<!--[if (mso)|(IE)]></td><![endif]-->
-      <!--[if (mso)|(IE)]></tr></table></td></tr></table><![endif]-->
-    </div>
-  </div>
-</div>
-
-
-
-<div class="u-row-container" style="padding: 0px;background-color: transparent">
-  <div class="u-row" style="Margin: 0 auto;min-width: 320px;max-width: 600px;overflow-wrap: break-word;word-wrap: break-word;word-break: break-word;background-color: transparent;">
-    <div style="border-collapse: collapse;display: table;width: 100%;height: 100%;background-color: transparent;">
-      <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding: 0px;background-color: transparent;" align="center"><table cellpadding="0" cellspacing="0" border="0" style="width:600px;"><tr style="background-color: transparent;"><![endif]-->
-      
-<!--[if (mso)|(IE)]><td align="center" width="600" style="width: 600px;padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;" valign="top"><![endif]-->
-<div class="u-col u-col-100" style="max-width: 320px;min-width: 600px;display: table-cell;vertical-align: top;">
-  <div style="height: 100%;width: 100% !important;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;">
-  <!--[if (!mso)&(!IE)]><!--><div style="box-sizing: border-box; height: 100%; padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;border-radius: 0px;-webkit-border-radius: 0px; -moz-border-radius: 0px;"><!--<![endif]-->
-  
-<table id="u_content_social_1" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:40px 10px 10px;font-family:'Raleway',sans-serif;" align="left">
-        
-<div align="center">
-  <div style="display: table; max-width:167px;">
-  <!--[if (mso)|(IE)]><table width="167" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-collapse:collapse;" align="center"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; mso-table-lspace: 0pt;mso-table-rspace: 0pt; width:167px;"><tr><![endif]-->
-  
-    
-    <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 10px;" valign="top"><![endif]-->
-    <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 10px">
-      <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://www.facebook.com/unlayer" title="Facebook" target="_blank">
-          <img src="https://res.cloudinary.com/dr63ndxik/image/upload/v1678111332/image-1_leqq9m.png" alt="Facebook" title="Facebook" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
-        </a>
-      </td></tr>
-    </tbody></table>
-    <!--[if (mso)|(IE)]></td><![endif]-->
-    
-    <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 10px;" valign="top"><![endif]-->
-    <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 10px">
-      <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://twitter.com/unlayerapp" title="Twitter" target="_blank">
-          <img src="https://res.cloudinary.com/dr63ndxik/image/upload/v1678111332/image-3_lssyqp.png" alt="Twitter" title="Twitter" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
-        </a>
-      </td></tr>
-    </tbody></table>
-    <!--[if (mso)|(IE)]></td><![endif]-->
-    
-    <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 10px;" valign="top"><![endif]-->
-    <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 10px">
-      <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://www.linkedin.com/company/unlayer/mycompany/" title="LinkedIn" target="_blank">
-          <img src="https://res.cloudinary.com/dr63ndxik/image/upload/v1678111332/image-4_gmliwn.png" title="LinkedIn" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
-        </a>
-      </td></tr>
-    </tbody></table>
-    <!--[if (mso)|(IE)]></td><![endif]-->
-    
-    <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 0px;" valign="top"><![endif]-->
-    <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 0px">
-      <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://www.instagram.com/unlayer_official/" title="Instagram" target="_blank">
-          <img src="https://res.cloudinary.com/dr63ndxik/image/upload/v1678111332/image-5_olcqa7.png" title="Instagram" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
-        </a>
-      </td></tr>
-    </tbody></table>
-    <!--[if (mso)|(IE)]></td><![endif]-->
-    
-    
-    <!--[if (mso)|(IE)]></tr></table></td></tr></table><![endif]-->
-  </div>
-</div>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<table id="u_content_text_deprecated_1" style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 100px 30px;font-family:'Raleway',sans-serif;" align="left">
-        
-  <div class="v-font-size" style="line-height: 170%; text-align: center; word-wrap: break-word;">
-    <p style="font-size: 14px; line-height: 170%;">UNSUBSCRIBE   |   PRIVACY POLICY   |   WEB</p>
-<p style="font-size: 14px; line-height: 170%;"> </p>
-<p style="font-size: 14px; line-height: 170%;">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.</p>
-  </div>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<table style="font-family:'Raleway',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-  <tbody>
-    <tr>
-      <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:0px;font-family:'Raleway',sans-serif;" align="left">
-        
-  <table height="0px" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;border-top: 1px solid #BBBBBB;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%">
-    <tbody>
-      <tr style="vertical-align: top">
-        <td style="word-break: break-word;border-collapse: collapse !important;vertical-align: top;font-size: 0px;line-height: 0px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%">
-          <span>&#160;</span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-  <!--[if (!mso)&(!IE)]><!--></div><!--<![endif]-->
-  </div>
-</div>
-<!--[if (mso)|(IE)]></td><![endif]-->
-      <!--[if (mso)|(IE)]></tr></table></td></tr></table><![endif]-->
-    </div>
-  </div>
-</div>
-
-
-    <!--[if (mso)|(IE)]></td></tr></table><![endif]-->
-    </td>
-  </tr>
-  </tbody>
-  </table>
-  <!--[if mso]></div><![endif]-->
-  <!--[if IE]></div><![endif]-->
-</body>
-
-</html>
-`,
+      html: `<h2>Please click on given link to activate your account</h2>
+        <p>${Client_URL}/resetpassword/${accessToken}</p>`,
     });
 
     console.log("Message sent: %s", info.messageId);
@@ -628,7 +268,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     return res.status(400).json({ error: error.message });
   }
 };
-  
+
 //Reset Password
 exports.resetPassword = async (req, res) => {
   const { resetLink, newPass } = req.body;
@@ -665,23 +305,42 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-
 exports.uploadImage = async (req, res) => {
   const { userId } = req.params;
 
-  if (req.file && req.file.path) {
-    const fileUrl = path.basename(req.file.path);
-    console.log("image path", fileUrl);
-    const updatedUser = await User.findByIdAndUpdate(userId, {
-      image: fileUrl,
-    });
+  if (req.file) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: `uploads/${userId}` },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
 
-    return res.json({
-      status: "ok",
-      success: true,
-      url: fileUrl,
-      user: updatedUser,
-    });
+      const fileUrl = result.secure_url;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { image: fileUrl },
+        { new: true }
+      );
+
+      return res.json({
+        status: "ok",
+        success: true,
+        url: fileUrl,
+        user: updatedUser,
+      });
+    } catch (error) {
+      return res.status(500).json({ status: "error", message: error.message });
+    }
   } else {
     return res.status(400).json({
       status: "error",
@@ -689,10 +348,99 @@ exports.uploadImage = async (req, res) => {
     });
   }
 };
-
 exports.getImage = async (req, res) => {
   const { userId, imageName } = req.params;
-  res.sendFile(
-    `c:/Users/user/Desktop/backend_IDP/Backend-IDP/uploads/${userId}/${imageName}`
-  );
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user || !user.image) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Image not found" });
+    }
+
+    // Assuming user.image contains the Cloudinary URL
+    const imageUrl = user.image;
+
+    return res.json({
+      status: "ok",
+      success: true,
+      url: imageUrl,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+};
+exports.removeImage = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user || !user.image) {
+      return res.status(404).json({ status: "error", message: "User or image not found" });
+    }
+
+    console.log(user.image);
+
+   
+    await cloudinary.uploader.destroy(user.image);
+
+    // Update user image field
+    user.image = '';
+    await user.save();
+
+    return res.json({ status: "ok", success: true, message: "Image removed", user });
+  } catch (error) {
+    console.error(error); // Log the error for debugging
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
+// Change Password
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const { id } = req.user;
+
+  console.log(req.body);
+
+  if (!newPassword) {
+    return res.status(400).json({ msg: "New password is required" });
+  }
+
+  try {
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Check if the current password matches the stored password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ msg: "Current password is incorrect" });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update the user's password
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { password: hashedNewPassword },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      msg: "Password successfully changed",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return res
+      .status(500)
+      .json({ msg: "Internal server error", error: error.message });
+  }
 };

@@ -3,7 +3,7 @@ const { registerRules, validator } = require("../middlewares/validator.js");
 const isAuth = require("../middlewares/passport-setup.js");
 const multer = require("multer");
 const fs = require("fs");
-
+const cloudinary = require('cloudinary').v2;
 const {
     register,
     login,
@@ -17,6 +17,8 @@ const {
     uploadImage,
     getImage,
     logout,
+    removeImage,
+    changePassword,
    
   } = require("../controllers/authController.js");
 
@@ -32,6 +34,7 @@ router.post("/forgot",forgotPassword);
 router.post("/reset",resetPassword);
 router.get("/users", allUsers);
 router.get("/user/:id", getSingleUser);
+router.put("/changepassword", isAuth() , changePassword);
 router.get("/current", isAuth(), (req, res) => {
     console.log("req", req);
     res.json(req.user);
@@ -39,17 +42,25 @@ router.get("/current", isAuth(), (req, res) => {
 
   //upload Config 
 
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      const userId = req.params.userId;
-      const uploadDir = `./uploads/${userId}`;
-      fs.mkdirSync(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-      cb(null, Date.now() + "--" + file.originalname);
-    },
-  });
+          
+  cloudinary.config({ 
+    cloud_name: 'dms2pptzs', 
+    api_key: '234343386118662', 
+    api_secret: '3sKIhiWIOna-LmiAK7XO2_v5Kbg' 
+  }); 
+
+  const storage = multer.memoryStorage();
+  // const storage = multer.diskStorage({
+  //   destination: (req, file, cb) => {
+  //     const userId = req.params.userId;
+  //     const uploadDir = `./uploads/${userId}`;
+  //     fs.mkdirSync(uploadDir, { recursive: true });
+  //     cb(null, uploadDir);
+  //   },
+  //   filename: function (req, file, cb) {
+  //     cb(null, Date.now() + "--" + file.originalname);
+  //   },
+  // });
   
   const fileFilter = (req, file, cb) => {
     let filetype = "";
@@ -81,9 +92,9 @@ router.get("/current", isAuth(), (req, res) => {
     fileFilter: fileFilter,
   });
   
-  router.put("/upload/:userId", upload.single("file"), uploadImage);
+  router.put("/upload/:userId", upload.single("image"), uploadImage);
   router.get("/image/:userId/:imageName", getImage);
   
-
+  router.delete("/remove/:userId", removeImage);
 
 module.exports = router;

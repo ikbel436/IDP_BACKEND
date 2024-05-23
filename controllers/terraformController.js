@@ -1,13 +1,14 @@
 const fs = require("fs");
 const { exec } = require("child_process");
 const { TerraformGenerator, map } = require("terraform-generator");
-const AWS = require('aws-sdk');
+const AWS = require("aws-sdk");
 const { EC2Client, TerminateInstancesCommand } = require("@aws-sdk/client-ec2");
-const { S3 } = require('aws-sdk/clients/s3');
+const { S3 } = require("aws-sdk/clients/s3");
+const wss = require("../index.js").wss;
 
 // Configure AWS SDK
-const ec2Client = new EC2Client({ region: "ca-central-1" }); 
-AWS.config.update({ region: 'ca-central-1' }); 
+const ec2Client = new EC2Client({ region: "ca-central-1" });
+AWS.config.update({ region: "ca-central-1" });
 
 // Generate Terraform Files
 exports.generateTerraform = (req, res) => {
@@ -48,21 +49,25 @@ exports.generateTerraform = (req, res) => {
     // Generate S3 bucket policy if generateS3Module is true
     if (configs.generateS3Module) {
       // Generate the S3 bucket policy
-      const s3BucketPolicy = tfg.resource("aws_s3_bucket_policy", "private_policy", {
-        bucket: s3BucketName, 
-        policy: JSON.stringify({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Sid: "PrivateContent",
-              Effect: "Deny",
-              Principal: "*",
-              Action: "s3:GetObject",
-              Resource: `arn:aws:s3:::${s3BucketName}/*`
-            }
-          ]
-        })
-      });
+      const s3BucketPolicy = tfg.resource(
+        "aws_s3_bucket_policy",
+        "private_policy",
+        {
+          bucket: s3BucketName,
+          policy: JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Sid: "PrivateContent",
+                Effect: "Deny",
+                Principal: "*",
+                Action: "s3:GetObject",
+                Resource: `arn:aws:s3:::${s3BucketName}/*`,
+              },
+            ],
+          }),
+        }
+      );
     }
   }
 
@@ -70,6 +75,7 @@ exports.generateTerraform = (req, res) => {
   const terraformConfig = result.tf;
 
   console.log("Generated Terraform configuration:", terraformConfig);
+
   // Write the Terraform configuration to a file
   fs.writeFileSync("main.tf", terraformConfig);
 
