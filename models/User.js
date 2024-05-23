@@ -1,3 +1,4 @@
+const c = require("config");
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema.Types;
 mongoose.set("strictQuery", false);
@@ -5,8 +6,14 @@ mongoose.set("strictQuery", false);
 const userSchema = mongoose.Schema({
   name: String,
   email: String,
-  phoneNumber: Number,
+  phoneNumber: String,
   password: String,
+  address: String,
+  birthDate: String,
+  codePostal: String,
+  country: String,
+  city: String,
+
   createdAt: {
     type: Date,
     default: new Date(),
