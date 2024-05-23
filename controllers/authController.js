@@ -1,4 +1,3 @@
-
 const User = require("../models/User.js");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
@@ -8,63 +7,62 @@ const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
 const path = require("path");
-const sendEmail = require("../config/sendEmail.js")
+const sendEmail = require("../config/sendEmail.js");
 //Password Crypt
 const bcrypt = require("bcryptjs");
-const cloudinary = require('cloudinary').v2;
-cloudinary.config({ 
-  cloud_name: 'dms2pptzs', 
-  api_key: '234343386118662', 
-  api_secret: '3sKIhiWIOna-LmiAK7XO2_v5Kbg' 
-}); 
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: "dms2pptzs",
+  api_key: "234343386118662",
+  api_secret: "3sKIhiWIOna-LmiAK7XO2_v5Kbg",
+});
 // Login User
 exports.login = async (req, res) => {
   const { email, password } = req.body;
-  try { 
-     const user = await User.findOne({ email });
-     if (!user)
-       return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
-     const isMatch = await bcrypt.compare(password, user.password);
-     if (!isMatch)
-       return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
- 
-     const payload = {
-       id: user._id,
-       name: user.name,
-       email: user.email,
-       phoneNumber: user.phoneNumber,
-       role: user.Role
-     };
- 
-     const token = await jwt.sign(payload, secretOrkey);
-     // Set the JWT token in a cookie
-     return res.status(200).json({ token: `${token}`, user });
+  try {
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
+
+    const payload = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.Role,
+      address: user.address,
+      birthDate: user.birthDate,
+      codePostal: user.codePostal,
+      country: user.country,
+    };
+
+    const token = await jwt.sign(payload, secretOrkey);
+    // Set the JWT token in a cookie
+    return res.status(200).json({ token: `${token}`, user });
   } catch (error) {
-     // Log the error to the console for debugging purposes
-     console.error('Error during login:', error);
-     // Return a more informative response to the client
-     return res.status(500).json({ msg: 'Internal server error', error: error.message });
+    // Log the error to the console for debugging purposes
+    console.error("Error during login:", error);
+    // Return a more informative response to the client
+    return res
+      .status(500)
+      .json({ msg: "Internal server error", error: error.message });
   }
- };
- 
- 
+};
 
- 
- 
-
-
-
-  // Register User
+// Register User
 exports.register = async (req, res) => {
-    const { name, email, phoneNumber, password } = req.body;
-  
-    try {
-      const searchRes = await User.findOne({ email });
-      if (searchRes)
-        return res
-          .status(401)
-          .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
-  
+  const { name, email, phoneNumber, password } = req.body;
+
+  try {
+    const searchRes = await User.findOne({ email });
+    if (searchRes)
+      return res
+        .status(401)
+        .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
+
     //   // create reusable transporter object using the default SMTP transport
     //   let transporter = nodemailer.createTransport({
     //     host: "smtp.gmail.com",
@@ -76,7 +74,7 @@ exports.register = async (req, res) => {
     //     },
     //     tls: { rejectUnothorized: false },
     //   });
-  
+
     //   // send mail with defined transport object
     //   let info = await transporter.sendMail({
     //     from: '"Node mailer contact" <zaghouani.yosri@gmail.com>', // sender address
@@ -85,141 +83,125 @@ exports.register = async (req, res) => {
     //     text: "Hello world?", // plain text body
     //     html: "<b>Hello world?</b>", // html body
     //   });
-  
+
     //   console.log("Message sent: %s", info.messageId);
     //   // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-  
+
     //   // Preview only available when sending through an Ethereal account
     //   console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
     //   // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
-  
+
     //   console.log("email has been sent");
-  
-      const newUser = new User({
-        name,
-        email,
-        password,
-        phoneNumber,
-        
-      });
-  
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(password, salt);
-      newUser.password = hash;
-  
-      await newUser.save();
-      newUser => console.log(newUser);
 
-      res.status(201).json(newUser);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ errors: error });
-    }
-  };
+    const newUser = new User({
+      name,
+      email,
+      password,
+      phoneNumber,
+    });
 
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+    newUser.password = hash;
 
-  // Logout endpoint
-exports.logout = ((req, res) => {
+    await newUser.save();
+    (newUser) => console.log(newUser);
+
+    res.status(201).json(newUser);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ errors: error });
+  }
+};
+
+// Logout endpoint
+exports.logout = (req, res) => {
   // Clear the JWT token cookie
-  res.cookie('jwt', '', { expires: new Date(0), path: '/', secure: true, httpOnly: true, sameSite: 'strict' });
-  res.status(200).send('Logged out');
-});
+  res.cookie("jwt", "", {
+    expires: new Date(0),
+    path: "/",
+    secure: true,
+    httpOnly: true,
+    sameSite: "strict",
+  });
+  res.status(200).send("Logged out");
+};
 
-  // Handle user roles
+// Handle user roles
 exports.authorizeRoles = (...roles) => {
-    return (req, res, next) => {
-      const user = User.findById(req.params.id);
-      if (!roles.includes(user.role)) {
-        return next(
-          res.status(403).json({
-            msg: `Role (${user.role}) is not allowed to acces this resource`,
-          })
-        );
-      }
-    };
-  };
-  
-  // Update User
-  exports.updateUser = async (req, res) => {
-    try {
-      const { name, email, phoneNumber,status,description} = req.body;
-  
-      const updatedUser = await User.findByIdAndUpdate(req.params.id, {
-        name,
-        email,
-        phoneNumber,
-        status,
-        description,
-      });
-  
-      return res.status(201).json({
-        msg: "L'utilisateur a été modifié avec succès",
-        user: updatedUser,
-      });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
+  return (req, res, next) => {
+    const user = User.findById(req.params.id);
+    if (!roles.includes(user.role)) {
+      return next(
+        res.status(403).json({
+          msg: `Role (${user.role}) is not allowed to acces this resource`,
+        })
+      );
     }
   };
-  
-  // Get all users
-  exports.allUsers = async (req, res) => {
-    try {
-      const users = await User.find();
-      res.status(200).json({
-        users,
-      });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
-    }
-  };
-  //Delete a User
-  exports.deleteUser = async (req, res) => {
-    try {
-      await User.findByIdAndDelete(req.params.id);
-      res.json({ msg: "utilisateur supprimé avec succès" });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
-    }
-  };
-  
-  //Get User with id
-  exports.getSingleUser = async (req, res) => {
-    try {
-      const user = await User.findById(req.params.id);
-      res.status(200).json({
-        succes: true,
-        user,
-      });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
-    }
-  };
+};
 
-  //Forget Password
-  // exports.forgotPassword = async (req, res) => {
-  //   const { email } = req.body;
-  //   try {
-  //     const user = await User.findOne({ email });
-  //     if (!user) {
-  //       return res.status(404).json({ msg: "User not found" });
-  //     }
+// Update User
+exports.updateUser = async (req, res) => {
+  try {
+    const { name, email, phoneNumber, status, description , birthDate , codePostal , country , address , city } = req.body;
 
-  //     // Generate reset token
-  //     const resetToken = jwt.sign({ id: user._id }, config.get("RESET_PWD_KEY"), { expiresIn: "36000" });
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, {
+      name,
+      email,
+      phoneNumber,
+      status,
+      description,
+      address,
+      birthDate,
+      codePostal,
+      country,
+      city,
+    });
 
-  //     console.log(resetToken);
-  //     const url = `http://localhost:3000/auth/reset?token=${resetToken}`;
-  //     console.log(url)
-  //     console.log(user.email);
-  //     await sendEmail(user.email, "Password Reset", `To reset your password, click on the following link:${url}`);
+    return res.status(201).json({
+      msg: "L'utilisateur a été modifié avec succès",
+      user: updatedUser,
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
 
+// Get all users
+exports.allUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.status(200).json({
+      users,
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
+//Delete a User
+exports.deleteUser = async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ msg: "utilisateur supprimé avec succès" });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
 
-  //     return res.status(200).json({ msg: "Password reset email sent" });
-  //   } catch (error) {
-  //     console.error(error);
-  //     res.status(500).json({ msg: "Server Error" });
-  //   }
-  // };
+//Get User with id
+exports.getSingleUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    res.status(200).json({
+      succes: true,
+      user,
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
+
 // new forgot password
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -235,7 +217,7 @@ exports.forgotPassword = async (req, res) => {
     const accessToken = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
       expiresIn: "20m",
     });
-    console.log(accessToken)
+    console.log(accessToken);
 
     let transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -630,7 +612,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     return res.status(400).json({ error: error.message });
   }
 };
-  
+
 //Reset Password
 exports.resetPassword = async (req, res) => {
   const { resetLink, newPass } = req.body;
@@ -666,8 +648,6 @@ exports.resetPassword = async (req, res) => {
     return res.status(401).json({ error: "Invalid or missing reset link" });
   }
 };
-          
-
 
 exports.uploadImage = async (req, res) => {
   const { userId } = req.params;
@@ -703,7 +683,7 @@ exports.uploadImage = async (req, res) => {
         user: updatedUser,
       });
     } catch (error) {
-      return res.status(500).json({ status: 'error', message: error.message });
+      return res.status(500).json({ status: "error", message: error.message });
     }
   } else {
     return res.status(400).json({
@@ -712,36 +692,6 @@ exports.uploadImage = async (req, res) => {
     });
   }
 };
-// exports.uploadImage = async (req, res) => {
-//   const { userId } = req.params;
-
-//   if (req.file && req.file.path) {
-//     const fileUrl = path.basename(req.file.path);
-//     console.log("image path", fileUrl);
-//     const updatedUser = await User.findByIdAndUpdate(userId, {
-//       image: fileUrl,
-//     });
-
-//     return res.json({
-//       status: "ok",
-//       success: true,
-//       url: fileUrl,
-//       user: updatedUser,
-//     });
-//   } else {
-//     return res.status(400).json({
-//       status: "error",
-//       message: "File not found",
-//     });
-//   }
-// };
-
-// exports.getImage = async (req, res) => {
-//   const { userId, imageName } = req.params;
-//   res.sendFile(
-//     `c:/Users/user/Desktop/backend_IDP/Backend-IDP/uploads/${userId}/${imageName}`
-//   );
-// };
 exports.getImage = async (req, res) => {
   const { userId, imageName } = req.params;
 
@@ -749,7 +699,9 @@ exports.getImage = async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user || !user.image) {
-      return res.status(404).json({ status: "error", message: "Image not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "Image not found" });
     }
 
     // Assuming user.image contains the Cloudinary URL
