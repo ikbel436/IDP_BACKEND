@@ -17,6 +17,7 @@ const {
     uploadImage,
     getImage,
     logout,
+    removeImage,
    
   } = require("../controllers/authController.js");
 
@@ -89,9 +90,9 @@ router.get("/current", isAuth(), (req, res) => {
     fileFilter: fileFilter,
   });
   
-  router.put("/upload/:userId", upload.single("file"), uploadImage);
+  router.put("/upload/:userId", upload.single("image"), uploadImage);
   router.get("/image/:userId/:imageName", getImage);
   
-
+  router.delete("/remove/:userId", removeImage);
 
 module.exports = router;
