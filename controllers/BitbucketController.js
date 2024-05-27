@@ -11,10 +11,9 @@ async function connect_bitbucket(req, res) {
 
     try {
         const repositories = await fetchRepositoriesFromBitbucket(accessToken, workspace);
-        // Optionally, store the repositories in a cookie or session here
         res.cookie('repositories', JSON.stringify(repositories), { maxAge: 86400000, httpOnly: true });
-        res.send({ repositories });
-        console.log(JSON.stringify(repositories));
+        res.send( repositories );
+        // console.log(JSON.stringify(repositories));
     } catch (error) {
         console.error(error);
         res.status(500).send({ error: 'Failed to fetch repositories.' });
@@ -41,7 +40,7 @@ async function fetchRepositoriesFromBitbucket(accessToken, workspace) {
             //slug: repo.slug,
 
         }));
-        return { enhancedRepositories };
+        return  enhancedRepositories ;
 
 
     } catch (error) {
