@@ -372,6 +372,31 @@ exports.getImage = async (req, res) => {
     return res.status(500).json({ status: "error", message: error.message });
   }
 };
+exports.removeImage = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user || !user.image) {
+      return res.status(404).json({ status: "error", message: "User or image not found" });
+    }
+
+    console.log(user.image);
+
+   
+    await cloudinary.uploader.destroy(user.image);
+
+    // Update user image field
+    user.image = '';
+    await user.save();
+
+    return res.json({ status: "ok", success: true, message: "Image removed", user });
+  } catch (error) {
+    console.error(error); // Log the error for debugging
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+};
 
 // Change Password
 exports.changePassword = async (req, res) => {
