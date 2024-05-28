@@ -218,7 +218,6 @@ exports.generatePod = async (req, res) => {
         .send("Missing required fields in the request body");
     }
 
-    // Generate the Pod YAML content
     const podYaml = generatePodYaml(
       podName,
       image,
@@ -231,22 +230,17 @@ exports.generatePod = async (req, res) => {
       tierlbl
     );
 
-    // Define the temporary file path
     const tempFilePath = path.join(__dirname, "temp", `${podName}.yaml`);
 
-    // Ensure the temp directory exists
     const tempDir = path.dirname(tempFilePath);
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Save the Pod YAML file
     fs.writeFileSync(tempFilePath, podYaml);
 
-    // Respond with success message
     res.status(200).send("Pod YAML file generated and saved.");
   } catch (error) {
-    console.error("Error generating Pod YAML:", error);
     res.status(500).send("Failed to generate Pod YAML.");
   }
 };
@@ -314,7 +308,6 @@ exports.generateReplicatSet = async (req, res) => {
     // Respond with success message
     res.status(200).send("ReplicatSet YAML file generated and saved.");
   } catch (error) {
-    console.error("Error generating ReplicatSet YAML:", error);
     res.status(500).send("Failed to generate ReplicatSet YAML.");
   }
 };
@@ -369,22 +362,14 @@ exports.generateDeployment = async (req, res) => {
       labels
     );
 
-    // Define the temporary file path
     const tempFilePath = path.join(__dirname, "temp", `${deploymentName}.yaml`);
-
-    // Ensure the temp directory exists
     const tempDir = path.dirname(tempFilePath);
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
-
-    // Save the Deployment YAML file
     fs.writeFileSync(tempFilePath, deploymentYaml);
-
-    // Respond with success message
     res.status(200).send("Deployment YAML file generated and saved.");
   } catch (error) {
-    console.error("Error generating Deployment YAML:", error);
     res.status(500).send("Failed to generate Deployment YAML.");
   }
 };

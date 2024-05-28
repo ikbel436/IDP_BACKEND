@@ -36,7 +36,6 @@ router.get("/users", allUsers);
 router.get("/user/:id", getSingleUser);
 router.put("/changepassword", isAuth() , changePassword);
 router.get("/current", isAuth(), (req, res) => {
-    console.log("req", req);
     res.json(req.user);
   });
 

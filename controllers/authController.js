@@ -43,12 +43,8 @@ exports.login = async (req, res) => {
     };
 
     const token = await jwt.sign(payload, secretOrkey);
-    // Set the JWT token in a cookie
     return res.status(200).json({ token: `${token}`, user });
   } catch (error) {
-    // Log the error to the console for debugging purposes
-    console.error("Error during login:", error);
-    // Return a more informative response to the client
     return res
       .status(500)
       .json({ msg: "Internal server error", error: error.message });
@@ -66,36 +62,6 @@ exports.register = async (req, res) => {
         .status(401)
         .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
 
-    //   // create reusable transporter object using the default SMTP transport
-    //   let transporter = nodemailer.createTransport({
-    //     host: "smtp.gmail.com",
-    //     port: 587,
-    //     secure: false, // true for 465, false for other ports
-    //     auth: {
-    //       user: "zaghouani.yosri@gmail.com", // generated ethereal user
-    //       pass: "", // generated ethereal password
-    //     },
-    //     tls: { rejectUnothorized: false },
-    //   });
-
-    //   // send mail with defined transport object
-    //   let info = await transporter.sendMail({
-    //     from: '"Node mailer contact" <zaghouani.yosri@gmail.com>', // sender address
-    //     to: email, // list of receivers
-    //     subject: "Hello ✔", // Subject line
-    //     text: "Hello world?", // plain text body
-    //     html: "<b>Hello world?</b>", // html body
-    //   });
-
-    //   console.log("Message sent: %s", info.messageId);
-    //   // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-
-    //   // Preview only available when sending through an Ethereal account
-    //   console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-    //   // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
-
-    //   console.log("email has been sent");
-
     const newUser = new User({
       name,
       email,
@@ -108,11 +74,9 @@ exports.register = async (req, res) => {
     newUser.password = hash;
 
     await newUser.save();
-    (newUser) => console.log(newUser);
 
     res.status(201).json(newUser);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ errors: error });
   }
 };
@@ -231,7 +195,6 @@ exports.forgotPassword = async (req, res) => {
     const accessToken = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
       expiresIn: "20m",
     });
-    console.log(accessToken);
 
     let transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -252,11 +215,6 @@ exports.forgotPassword = async (req, res) => {
       html: `<h2>Please click on given link to activate your account</h2>
         <p>${Client_URL}/resetpassword/${accessToken}</p>`,
     });
-
-    console.log("Message sent: %s", info.messageId);
-    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-
-    console.log("email has been sent");
 
     await user.updateOne({ resetLink: accessToken });
 
@@ -379,21 +337,24 @@ exports.removeImage = async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user || !user.image) {
-      return res.status(404).json({ status: "error", message: "User or image not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "User or image not found" });
     }
 
-    console.log(user.image);
-
-   
     await cloudinary.uploader.destroy(user.image);
 
     // Update user image field
-    user.image = '';
+    user.image = "";
     await user.save();
 
-    return res.json({ status: "ok", success: true, message: "Image removed", user });
+    return res.json({
+      status: "ok",
+      success: true,
+      message: "Image removed",
+      user,
+    });
   } catch (error) {
-    console.error(error); // Log the error for debugging
     return res.status(500).json({ status: "error", message: error.message });
   }
 };
@@ -402,8 +363,6 @@ exports.removeImage = async (req, res) => {
 exports.changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const { id } = req.user;
-
-  console.log(req.body);
 
   if (!newPassword) {
     return res.status(400).json({ msg: "New password is required" });
@@ -416,17 +375,14 @@ exports.changePassword = async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // Check if the current password matches the stored password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ msg: "Current password is incorrect" });
     }
 
-    // Hash the new password
     const salt = await bcrypt.genSalt(10);
     const hashedNewPassword = await bcrypt.hash(newPassword, salt);
 
-    // Update the user's password
     const updatedUser = await User.findByIdAndUpdate(
       id,
       { password: hashedNewPassword },
@@ -438,7 +394,6 @@ exports.changePassword = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Error changing password:", error);
     return res
       .status(500)
       .json({ msg: "Internal server error", error: error.message });
