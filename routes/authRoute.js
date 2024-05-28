@@ -40,6 +40,8 @@ router.get("/current", isAuth(), (req, res) => {
   console.log("req", req);
   res.json(req.user);
 });
+res.json(req.user);
+  });
 
 //upload Config 
 

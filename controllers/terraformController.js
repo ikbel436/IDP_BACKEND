@@ -1,3 +1,5 @@
+              /* This JavaScript code defines two functions that interact with AWS services using the AWS SDK and
+                                                     Terraform. */
 const fs = require("fs");
 const { exec } = require("child_process");
 const { TerraformGenerator, map } = require("terraform-generator");
@@ -127,10 +129,8 @@ exports.destroyInstance = async (req, res) => {
 
   try {
     const data = await ec2Client.send(new TerminateInstancesCommand(params));
-    console.log(data); // Log the data from AWS SDK
     res.send("Instance terminated successfully");
   } catch (err) {
-    console.log(err, err.stack); // Log the error if there is one
     res.status(500).send("Failed to terminate instance");
   }
 };
