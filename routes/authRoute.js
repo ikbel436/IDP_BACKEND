@@ -41,7 +41,6 @@ router.get("/current", isAuth(), (req, res) => {
   res.json(req.user);
 });
 res.json(req.user);
-  });
 
 //upload Config 
 
