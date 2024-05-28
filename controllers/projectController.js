@@ -9,65 +9,7 @@ const cloudinary = require("cloudinary").v2;
 const archiver = require("archiver");
 const AWS = require("aws-sdk");
 
-const s3 = new AWS.S3({
-  accessKeyId: "AKIAZ2PCYYXTNQOXHEHO",
-  secretAccessKey: "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",
-  region: "ca-central-1",
-});
-const ensureUploadsDirectoryExists = () => {
-  const uploadsDir = path.join(__dirname, "uploads");
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-  }
-};
-const compressFolder = (folderPath, outputPath) => {
-  return new Promise((resolve, reject) => {
-    const output = fs.createWriteStream(outputPath);
-    const archive = archiver("zip", {
-      zlib: { level: 9 }, // Set the compression level
-    });
 
-    output.on("close", () => {
-      resolve(outputPath);
-    });
-
-    output.on("end", () => {});
-
-    archive.on("warning", (err) => {
-      if (err.code === "ENOENT") {
-      } else {
-        reject(err);
-      }
-    });
-
-    archive.on("error", (err) => {
-      reject(err);
-    });
-
-    archive.pipe(output);
-    archive.directory(folderPath, false);
-    archive.finalize();
-  });
-};
-const uploadToS3 = (filePath, bucketName, key) => {
-  return new Promise((resolve, reject) => {
-    const fileContent = fs.readFileSync(filePath);
-    const params = {
-      Bucket: bucketName,
-      Key: key,
-      Body: fileContent,
-      Tagging: "public=true",
-    };
-
-    s3.upload(params, (err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(data.Location);
-      }
-    });
-  });
-};
 
 // create project and assign it to a user
 exports.createProject = async (req, res) => {
