@@ -53,7 +53,7 @@ exports.login = async (req, res) => {
 
 // Register User
 exports.register = async (req, res) => {
-  const { name, email, phoneNumber, password } = req.body;
+  const { name, email, phoneNumber, password, role } = req.body;
 
   try {
     const searchRes = await User.findOne({ email });
@@ -67,6 +67,7 @@ exports.register = async (req, res) => {
       email,
       password,
       phoneNumber,
+      role,
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -341,6 +342,9 @@ exports.removeImage = async (req, res) => {
         .status(404)
         .json({ status: "error", message: "User or image not found" });
     }
+
+    console.log(user.image);
+
 
     await cloudinary.uploader.destroy(user.image);
 
