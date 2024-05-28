@@ -42,7 +42,7 @@ exports.login = async (req, res) => {
       country: user.country,
     };
 
-    const token = await jwt.sign(payload, secretOrkey);
+    const token = await jwt.sign(payload, secretOrkey, { expiresIn: "2h" });
     // Set the JWT token in a cookie
     return res.status(200).json({ token: `${token}`, user });
   } catch (error) {
@@ -57,7 +57,7 @@ exports.login = async (req, res) => {
 
 // Register User
 exports.register = async (req, res) => {
-  const { name, email, phoneNumber, password } = req.body;
+  const { name, email, phoneNumber, password, role } = req.body;
 
   try {
     const searchRes = await User.findOne({ email });
@@ -101,6 +101,7 @@ exports.register = async (req, res) => {
       email,
       password,
       phoneNumber,
+      role,
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -384,7 +385,7 @@ exports.removeImage = async (req, res) => {
 
     console.log(user.image);
 
-   
+
     await cloudinary.uploader.destroy(user.image);
 
     // Update user image field

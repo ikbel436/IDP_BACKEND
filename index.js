@@ -11,7 +11,7 @@ const cookieParser = require("cookie-parser");
 const projectRouter = require("./routes/projectRoutes");
 const K8Route = require("./routes/K8Route");
 const BitbucketRoute = require('./routes/BitbucketRoute');
-
+const azureResourcesRoute = require('./routes/AzureResourcesRoute')
 const OAuthRoute = require("./routes/OAuthRoute");
 const { specs, swaggerUi } = require("./swagger");
 const { default: axios } = require("axios");
@@ -37,6 +37,7 @@ app.use("", projectRouter);
 app.use("/k8", K8Route);
 app.use("/connect", BitbucketRoute);
 app.use("/OAuth", OAuthRoute);
+app.use('/azure', azureResourcesRoute);
 
 
 

@@ -1,0 +1,13 @@
+﻿NAME,TYPE,RESOURCE GROUP,LOCATION,SUBSCRIPTION,
+"csb1003200309c7754e","Storage account","cloud-shell-storage-westeurope","West Europe","Azure for Students"
+"NesrineVMAzure-vnet","Virtual network","azuremv","France Central","Azure for Students"
+"NesrineVMAzure-vnet-bastion","Bastion","azuremv","France Central","Azure for Students"
+"NesrineVMAzure-vnet-ip","Public IP address","azuremv","France Central","Azure for Students"
+"NesrineVMAzure123","Virtual machine","azuremv","France Central","Azure for Students"
+"NesrineVMAzure123-ip","Public IP address","azuremv","France Central","Azure for Students"
+"NesrineVMAzure123-nsg","Network security group","azuremv","France Central","Azure for Students"
+"nesrinevmazure123407_z1","Network Interface","azuremv","France Central","Azure for Students"
+"NesrineVMAzure123_OsDisk_1_ade0604922e74cddab28f72204a4ed45","Disk","azuremv","France Central","Azure for Students"
+"NesrineVMAzurevnetip775","Public IP address","azuremv","France Central","Azure for Students"
+"NetworkWatcher_francecentral","Network Watcher","azuremv","France Central","Azure for Students"
+"terraformnesrine","Storage account","myrg","North Europe","Azure for Students"

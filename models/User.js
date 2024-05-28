@@ -13,6 +13,7 @@ const userSchema = mongoose.Schema({
   codePostal: String,
   country: String,
   city: String,
+  Role: String,
 
   createdAt: {
     type: Date,
@@ -21,10 +22,6 @@ const userSchema = mongoose.Schema({
   image: {
     public_id: { type: String },
     url: { type: String },
-  },
-  Role: {
-    type: String,
-    default: "User",
   },
   Fonction: {
     type: String,
@@ -40,7 +37,7 @@ const userSchema = mongoose.Schema({
     data: String,
     default: "",
   },
-  
+
   status: {
     type: String,
     default: "online",
