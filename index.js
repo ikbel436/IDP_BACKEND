@@ -1,7 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
-const gitlabRoutes = require('./routes/gitlabRoute');
 const TerraformRoutes = require('./routes/terraformRoute');
 const AuthRoutes = require('./routes/authRoute');
 const connectDB = require('./config/DBConnect');
@@ -17,6 +16,9 @@ const { specs, swaggerUi } = require("./swagger");
 const { default: axios } = require("axios");
 const WebSocket = require("ws");
 const http = require("http");
+const gitlabGenRoute = require ("./routes/gitlabGenRoute");
+const GitLabRoute = require ("./routes/GitLabRoute");
+
 
 const corsOptions = {
   origin: 'http://localhost:4200',
@@ -31,13 +33,14 @@ app.use(express.json());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 // Use the routes
 app.use("/terraform", TerraformRoutes);
-app.use("/gitlab", gitlabRoutes);
+app.use("/gitlab", gitlabGenRoute);
 app.use("/auth", AuthRoutes);
 app.use("", projectRouter);
 app.use("/k8", K8Route);
 app.use("/connect", BitbucketRoute);
 app.use("/OAuth", OAuthRoute);
 app.use('/azure', azureResourcesRoute);
+app.use('/gitlab', GitLabRoute);
 
 
 
