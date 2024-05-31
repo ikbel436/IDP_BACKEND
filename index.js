@@ -1,11 +1,11 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
-const gitlabRoutes = require('./routes/gitlabRoute');
+const gitlabGenRoutes = require('./routes/GitlabGenRoute');
+const GitLabRoute = require('./routes/gitlabRoute');
 const TerraformRoutes = require('./routes/terraformRoute');
 const AuthRoutes = require('./routes/authRoute');
 const connectDB = require('./config/DBConnect');
-const { Server } = require('http');
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const projectRouter = require("./routes/projectRoutes");
@@ -14,13 +14,10 @@ const BitbucketRoute = require('./routes/BitbucketRoute');
 const azureResourcesRoute = require('./routes/AzureResourcesRoute')
 const OAuthRoute = require("./routes/OAuthRoute");
 const { specs, swaggerUi } = require("./swagger");
-const { default: axios } = require("axios");
-const WebSocket = require("ws");
-const http = require("http");
-
+const ReposRoute = require('./routes/ReposRoute');
 const corsOptions = {
   origin: 'http://localhost:4200',
-  credentials: true // Allow cookies to be sent with requests
+  credentials: true 
 };
 
 app.use(cors(corsOptions));
@@ -31,13 +28,15 @@ app.use(express.json());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 // Use the routes
 app.use("/terraform", TerraformRoutes);
-app.use("/gitlab", gitlabRoutes);
+app.use("/gitlab", gitlabGenRoutes);
 app.use("/auth", AuthRoutes);
 app.use("", projectRouter);
 app.use("/k8", K8Route);
 app.use("/connect", BitbucketRoute);
 app.use("/OAuth", OAuthRoute);
 app.use('/azure', azureResourcesRoute);
+app.use('/gitlab', GitLabRoute);
+app.use('/Repos',ReposRoute)
 
 
 
