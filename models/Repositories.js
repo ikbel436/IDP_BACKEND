@@ -7,6 +7,10 @@ const repositorySchema = new mongoose.Schema({
   lastUpdated: Date,
   cloneUrl: String,
   language: String,
+  DBType: String,
+  DockerImage : String, 
+  Status : String,
+  SonarQube : String
 });
 
 module.exports = Repositories = mongoose.model("repositories", repositorySchema);

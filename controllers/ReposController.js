@@ -22,3 +22,41 @@ exports.createRepository = async (req, res) => {
       }
   };
 
+
+  exports.updateRepository = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updatedData = req.body;
+  
+      const result = await Repository.findByIdAndUpdate(id, updatedData, { new: true });
+  
+      if (!result) {
+        return res.status(404).json({ message: 'Repository not found' });
+      }
+  
+      res.json(result);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error updating repository.' });
+    }
+  };
+
+
+
+
+exports.getRepoById = async (req, res) => {
+  try {
+    const { id } = req.params; 
+
+    const repository = await Repository.findById(id);
+
+    if (!repository) {
+      return res.status(404).json({ message: 'Repository not found' });
+    }
+
+    res.json(repository);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error retrieving repository.' });
+  }
+};
