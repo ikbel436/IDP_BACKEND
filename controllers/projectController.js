@@ -95,11 +95,11 @@ exports.updateProject = [
   verifyToken,
   async (req, res) => {
     const projectId = req.params.id;
-    const { name, description, provider, lien } = req.body;
+    const projectData = req.body;
     try {
       const updatedProject = await Project.findByIdAndUpdate(
         projectId,
-        { name, description, provider, lien },
+        projectData,
         { new: true }
       );
       if (!updatedProject) {
