@@ -37,6 +37,12 @@ const userSchema = mongoose.Schema({
       ref: "project",
     },
   ],
+  myRepo: [
+    {
+      type: ObjectId,
+      ref: "repositories",
+    },
+  ],
   resetLink: {
     data: String,
     default: "",

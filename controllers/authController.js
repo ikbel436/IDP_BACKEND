@@ -10,7 +10,7 @@ const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
 const path = require("path");
-const sendEmail = require("../config/sendEmail.js");
+//const sendEmail = require("../config/sendEmail.js");
 //Password Crypt
 const bcrypt = require("bcryptjs");
 const cloudinary = require("cloudinary").v2;

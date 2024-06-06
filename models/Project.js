@@ -4,23 +4,16 @@ mongoose.set("strictQuery", false);
 
 const projectSchema = mongoose.Schema({
   name: String,
-
-  reference: String,
-  provider : String,
-  lien : String,
   description: String,
+  createdAt: Date,
+  lastUpdated: Date,
+  cloneUrl: String,
+  language: String,
+  DBType: String,
+  DockerImage : String, 
+  Status : String,
+  SonarQube : String,
 
-  createdAt: {
-    type: Date,
-    default: new Date(),
-  },
-  //fileUrl: String,
-  backendDockerImage: String, // Docker Hub image name for the backend
-  frontendDockerImage: String, // Docker Hub image name for the frontend
-  databaseType: {
-    type: String,
-    enum: ['MySQL', 'MongoDB', 'PostgreSQL', 'SQLite', 'Other'], // Define acceptable values
-  }
 });
 
 module.exports = Project = mongoose.model("project", projectSchema);

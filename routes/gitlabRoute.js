@@ -1,8 +1,7 @@
-
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const gitlabController = require('../controllers/Gitlab-file-GeneratorController');
+const { GetGitLabRepos } = require("../controllers/GitLabController");
 
-router.post('/generate-gitlab-ci', gitlabController.generateGitlabCI);
-
+router.post("/getrepos",GetGitLabRepos)
 module.exports = router;
+ 
