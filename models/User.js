@@ -14,7 +14,10 @@ const userSchema = mongoose.Schema({
   codePostal: String,
   country: String,
   city: String,
-  Role: String,
+  Role: {
+    type: String,
+    default: 'User'
+  },
 
   createdAt: {
     type: Date,
