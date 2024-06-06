@@ -157,3 +157,22 @@ exports.retreive = [
     }
   },
 ];
+
+
+exports.deleteRepository = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedRepository = await Repository.findByIdAndDelete(id);
+
+    if (!deletedRepository) {
+      return res.status(404).json({ message: "Repository not found" });
+    }
+
+    res.json(deletedRepository);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error deleting repository." });
+  }
+};
+

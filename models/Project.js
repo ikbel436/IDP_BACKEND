@@ -14,16 +14,6 @@ const projectSchema = mongoose.Schema({
   Status : String,
   SonarQube : String,
 
-  createdAt: {
-    type: Date,
-    default: new Date(),
-  },
-  // backendDockerImage: String, 
-  // frontendDockerImage: String, 
-  // databaseType: {
-  //   type: String,
-  //   enum: ["MySQL", "MongoDB", "PostgreSQL", "SQLite", "Other"], 
-  // },
 });
 
 module.exports = Project = mongoose.model("project", projectSchema);
