@@ -53,21 +53,33 @@ exports.login = async (req, res) => {
 
 // Register User
 exports.register = async (req, res) => {
-  const { name, email, phoneNumber, password, role } = req.body;
-
+  const { name, email, phoneNumber, password, birthDate } = req.body;
+  const role = req.body.Role || 'User';
   try {
     const searchRes = await User.findOne({ email });
     if (searchRes)
       return res
         .status(401)
         .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
+    const currentDate = new Date();
+    const birthDateObj = new Date(birthDate);
+    const age = currentDate.getFullYear() - birthDateObj.getFullYear();
+    const monthDifference = currentDate.getMonth() - birthDateObj.getMonth();
+    const dayDifference = currentDate.getDate() - birthDateObj.getDate();
 
+    if (
+      age < 18 ||
+      (age === 18 && (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
+    ) {
+      return res.status(400).json({ msg: "L'âge doit être de 18 ans ou plus" });
+    }
     const newUser = new User({
       name,
       email,
       password,
       phoneNumber,
       role,
+      birthDate,
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -125,7 +137,20 @@ exports.updateUser = async (req, res) => {
       address,
       city,
     } = req.body;
+    if (birthDate) {
+      const currentDate = new Date();
+      const birthDateObj = new Date(birthDate);
+      const age = currentDate.getFullYear() - birthDateObj.getFullYear();
+      const monthDifference = currentDate.getMonth() - birthDateObj.getMonth();
+      const dayDifference = currentDate.getDate() - birthDateObj.getDate();
 
+      if (
+        age < 18 ||
+        (age === 18 && (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
+      ) {
+        return res.status(400).json({ msg: "L'âge doit être de 18 ans ou plus" });
+      }
+    }
     const updatedUser = await User.findByIdAndUpdate(req.params.id, {
       name,
       email,
