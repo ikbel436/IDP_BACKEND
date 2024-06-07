@@ -15,9 +15,10 @@ const azureResourcesRoute = require('./routes/AzureResourcesRoute')
 const OAuthRoute = require("./routes/OAuthRoute");
 const { specs, swaggerUi } = require("./swagger");
 const ReposRoute = require('./routes/ReposRoute');
+const cloudServiceRoutes = require('./routes/CloudServiceRoutes');
 const corsOptions = {
   origin: 'http://localhost:4200',
-  credentials: true 
+  credentials: true
 };
 
 app.use(cors(corsOptions));
@@ -36,7 +37,8 @@ app.use("/connect", BitbucketRoute);
 app.use("/OAuth", OAuthRoute);
 app.use('/azure', azureResourcesRoute);
 app.use('/gitlab', GitLabRoute);
-app.use('/Repos',ReposRoute)
+app.use('/Repos', ReposRoute)
+app.use('/api/cloudservices', cloudServiceRoutes);
 
 
 
