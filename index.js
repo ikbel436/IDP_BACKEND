@@ -17,6 +17,7 @@ const { specs, swaggerUi } = require("./swagger");
 const { default: axios } = require("axios");
 const WebSocket = require("ws");
 const http = require("http");
+const cloudServiceRoutes = require('./routes/CloudServiceRoutes');
 
 const corsOptions = {
   origin: 'http://localhost:4200',
@@ -38,6 +39,7 @@ app.use("/k8", K8Route);
 app.use("/connect", BitbucketRoute);
 app.use("/OAuth", OAuthRoute);
 app.use('/azure', azureResourcesRoute);
+app.use('/api/cloudservices', cloudServiceRoutes);
 
 
 
