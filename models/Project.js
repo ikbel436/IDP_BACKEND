@@ -9,6 +9,7 @@ const projectSchema = mongoose.Schema({
   lastUpdated: Date,
   cloneUrl: String,
   language: String,
+  ArgoCD : String,
   DBType: String,
   DockerImage : String, 
   Status : String,
