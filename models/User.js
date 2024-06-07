@@ -7,13 +7,17 @@ const userSchema = mongoose.Schema({
   name: String,
   email: String,
   phoneNumber: String,
+  countryCode: String,
   password: String,
   address: String,
   birthDate: String,
   codePostal: String,
   country: String,
   city: String,
-  Role: String,
+  Role: {
+    type: String,
+    default: 'User'
+  },
 
   createdAt: {
     type: Date,
@@ -31,6 +35,12 @@ const userSchema = mongoose.Schema({
     {
       type: ObjectId,
       ref: "project",
+    },
+  ],
+  myRepo: [
+    {
+      type: ObjectId,
+      ref: "repositories",
     },
   ],
   resetLink: {

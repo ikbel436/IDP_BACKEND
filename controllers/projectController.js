@@ -15,12 +15,15 @@ const AWS = require("aws-sdk");
 exports.createProject = async (req, res) => {
   const {
     name,
-    description,
-    provider,
-    lien,
-    backendDockerImage,
-    frontendDockerImage,
-    databaseType,
+  description,
+  createdAt,
+  lastUpdated,
+  cloneUrl,
+  language,
+  DBType,
+  DockerImage , 
+  Status ,
+  SonarQube 
   } = req.body;
   var crypto = require("crypto");
   var reference = crypto.randomBytes(30).toString("hex");
@@ -39,13 +42,15 @@ exports.createProject = async (req, res) => {
 
     const newProject = new Project({
       name,
-      reference,
       description,
-      provider,
-      lien,
-      backendDockerImage,
-      frontendDockerImage,
-      databaseType,
+      createdAt,
+      lastUpdated,
+      cloneUrl,
+      language,
+      DBType,
+      DockerImage , 
+      Status ,
+      SonarQube 
     });
 
     await newProject.save();
@@ -90,11 +95,11 @@ exports.updateProject = [
   verifyToken,
   async (req, res) => {
     const projectId = req.params.id;
-    const { name, description, provider, lien } = req.body;
+    const projectData = req.body;
     try {
       const updatedProject = await Project.findByIdAndUpdate(
         projectId,
-        { name, description, provider, lien },
+        projectData,
         { new: true }
       );
       if (!updatedProject) {
