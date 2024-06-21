@@ -11,7 +11,7 @@ const projectSchema = mongoose.Schema({
   language: String,
   ArgoCD : String,
   DBType: String,
-  DockerImage : String, 
+  DockerImage : [], 
   Status : String,
   SonarQube : String,
 

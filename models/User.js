@@ -16,7 +16,7 @@ const userSchema = mongoose.Schema({
   city: String,
   Role: {
     type: String,
-    default: 'User'
+    default: "User",
   },
 
   createdAt: {
@@ -41,6 +41,12 @@ const userSchema = mongoose.Schema({
     {
       type: ObjectId,
       ref: "repositories",
+    },
+  ],
+  Bundles: [
+    {
+      type: ObjectId,
+      ref: "bundle",
     },
   ],
   resetLink: {
