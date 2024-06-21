@@ -40,6 +40,8 @@ exports.login = async (req, res) => {
       birthDate: user.birthDate,
       codePostal: user.codePostal,
       country: user.country,
+      myProjects: user.myProject,
+      myRepos : user.myRepo,
     };
 
     const token = await jwt.sign(payload, secretOrkey);
@@ -370,7 +372,6 @@ exports.removeImage = async (req, res) => {
         .json({ status: "error", message: "User or image not found" });
     }
 
-    console.log(user.image);
 
 
     await cloudinary.uploader.destroy(user.image);

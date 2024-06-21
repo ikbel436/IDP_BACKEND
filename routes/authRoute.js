@@ -37,7 +37,7 @@ router.get("/users", isAuth(), checkRole(['Administrateur']), allUsers);
 router.get("/user/:id", isAuth(), checkRole(['Administrateur', 'User']), getSingleUser);
 router.put("/changepassword", isAuth(), changePassword);
 router.get("/current", isAuth(), (req, res) => {
-  console.log("req", req);
+  // console.log("req", req);
   res.json(req.user);
 });
 
