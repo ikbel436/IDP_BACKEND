@@ -35,7 +35,7 @@ exports.createBundle = async (req, res) => {
 };
 
 exports.AddProjectToBundle = async (req, res) => {
-    const projects = req.body; // Assuming this is an array of repository objects
+    const Projects = req.body; // Assuming this is an array of repository objects
   
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(" ")[1];
@@ -49,7 +49,7 @@ exports.AddProjectToBundle = async (req, res) => {
       const decoded = jwt.verify(token, secretOrKey);
       const userId = decoded.id;
   
-      const newBundle = await Bundle.insertMany(projects);
+      const newBundle = await Bundle.insertMany(Projects);
   
       // Find the user by ID
       const searchedUser = await User.findOne({ _id: userId });
@@ -63,7 +63,7 @@ exports.AddProjectToBundle = async (req, res) => {
         strictPopulate: false,
         new: true,
         useFindAndModify: false,
-      }).populate({ path: "Bundles", model: Project });
+      }).populate({ path: "Bundles", model: Bundle });
   
       return res.status(201).json(user); // Return the updated user document
     } catch (error) {
