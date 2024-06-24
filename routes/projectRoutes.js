@@ -10,7 +10,7 @@ const {
 updateProject,
 deleteProject,
 retreive,
-retreivebyId
+retreivebyId,generateConfigMapFile,generateDataBaseFile,generateDeploymentFile
 
 } = require("../controllers/projectController.js");
 
@@ -19,5 +19,7 @@ router.put('/project/:id', updateProject);
 router.delete('/projects/:id', deleteProject);
 router.get("/get",retreive);
 router.get("/get/:id",retreivebyId);
-
+router.post('/generate-configmap', generateConfigMapFile);
+router.post('/generate-database-deployment',generateDataBaseFile);
+router.post('/generate-deployment',generateDeploymentFile);
 module.exports = router;
