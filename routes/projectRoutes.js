@@ -10,7 +10,7 @@ const {
 updateProject,
 deleteProject,
 retreive,
-retreivebyId,generateConfigMapFile,generateDataBaseFile,generateDeploymentFile
+retreivebyId,generateConfigMapFile,generateDataBaseFile,generateDeploymentFile,applyGeneratedK8sFiles
 
 } = require("../controllers/projectController.js");
 
@@ -22,4 +22,5 @@ router.get("/get/:id",retreivebyId);
 router.post('/generate-configmap', generateConfigMapFile);
 router.post('/generate-database-deployment',generateDataBaseFile);
 router.post('/generate-deployment',generateDeploymentFile);
+router.post('/apply-generated-k8s-files', applyGeneratedK8sFiles ); 
 module.exports = router;

@@ -9,7 +9,7 @@ const cloudinary = require("cloudinary").v2;
 const archiver = require("archiver");
 const AWS = require("aws-sdk");
 const { exec } = require('child_process');
-
+const Deployment = require('../models/Deployment.js');
 
 // create project and assign it to a user
 exports.createProject = async (req, res) => {
@@ -176,19 +176,81 @@ const generateK8sDir = () => {
   return dir;
 };
 
-// Function to apply Kubernetes files using kubectl
+const applyK8sFilesInSequence = async (filePaths) => {
+  for (const filePath of filePaths) {
+    if (filePath) {
+      await applyK8sFileWithKubectl(filePath);
+    }
+  }
+};
+
 const applyK8sFileWithKubectl = (filePath) => {
   return new Promise((resolve, reject) => {
     exec(`kubectl apply -f ${filePath}`, (error, stdout, stderr) => {
       if (error) {
-        reject(error);
-      } else {
-        resolve(stdout || stderr);
+        return reject(`error: ${error.message}`);
       }
+      if (stderr) {
+        return reject(`stderr: ${stderr}`);
+      }
+      resolve(stdout);
     });
   });
 };
 
+exports.applyGeneratedK8sFiles = async (req, res) => {
+  const { files, name, description, projects } = req.body;
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ msg: "No token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.get("secretOrKey"));
+    const userId = decoded.id;
+
+    if (!files || !Array.isArray(files)) {
+      return res.status(400).json({ msg: "Invalid input. 'files' should be an array of file paths." });
+    }
+
+    try {
+      await applyK8sFilesInSequence(files);
+      // Save the deployment information with status 'passed'
+      const deployment = new Deployment({
+        name,
+        description,
+        project: projects,
+        user: userId,
+        status: 'passed'
+      });
+      await deployment.save();
+
+      // Update the user document to include this deployment
+      await User.findByIdAndUpdate(userId, { $push: { myDeployments: deployment._id } });
+
+      return res.status(200).json({ msg: "Kubernetes files applied successfully." });
+    } catch (error) {
+      // Save the deployment information with status 'failed'
+      const deployment = new Deployment({
+        name,
+        description,
+        project: projects,
+        user: userId,
+        status: 'failed'
+      });
+      await deployment.save();
+
+      // Update the user document to include this deployment
+      await User.findByIdAndUpdate(userId, { $push: { myDeployments: deployment._id } });
+
+      return res.status(500).json({ errors: error });
+    }
+  } catch (error) {
+    res.status(500).json({ errors: error.message });
+  }
+};
 // Function to generate ConfigMap with user-provided key-value pairs
 const generateConfigMap = (data) => {
   let dataYaml = '';
