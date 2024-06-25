@@ -1,0 +1,42 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: Backend Depl
+spec:
+  type: NodePort
+  selector:
+    app: backend
+  ports:
+  - port: 8089
+    targetPort: 8089
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: Backend Depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: AAA
+        ports:
+        - containerPort: 8089
+        env:
+
+        - name: username
+          
+          value: "root"
+          
+

@@ -1,0 +1,27 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: idp-poc-staging-ingress
+  namespace: Backend Depl  # Ensure this takes the namespace from the first rule
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/group.name: idp-poc-cluster-alb-ingress-group
+  labels:
+    app: idp-staging-apps
+spec:
+  rules:
+
+    - host: backend.idp.insparkconnect.com
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: backend-service
+              port:
+                number: 8089
+  

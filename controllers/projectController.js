@@ -448,7 +448,7 @@ ${envVariables.map(envVar => `
   return serviceYaml + deploymentYaml;
 };
 exports.generateDeploymentFile = async (req, res) => {
-  const { serviceName, port, image, envVariables, expose, host,namespace } = req.body;
+  const { serviceName, port, image, envVariables, expose, host, namespace } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -460,32 +460,24 @@ exports.generateDeploymentFile = async (req, res) => {
     const decoded = jwt.verify(token, config.get('secretOrKey'));
     const userId = decoded.id;
 
-    const deploymentYaml = generateSpringBootDeployment(serviceName, port, image, envVariables,namespace);
+    const deploymentYaml = generateSpringBootDeployment(serviceName, port, image, envVariables, namespace);
     const k8sDir = generateK8sDir();
     const deploymentFilePath = path.join(k8sDir, `${serviceName}-deployment.yaml`);
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
-
-    // Apply the generated deployment file using kubectl
-   // await applyK8sFileWithKubectl(deploymentFilePath);
 
     if (expose) {
       const ingressFilePath = path.join(k8sDir, `idp-poc-staging-ingress.yaml`);
       let ingressYaml = '';
 
       if (fs.existsSync(ingressFilePath)) {
-        // If the Ingress file already exists, read and modify it
         const existingIngress = fs.readFileSync(ingressFilePath, 'utf8');
-        ingressYaml = addRuleToExistingIngress(existingIngress, serviceName, host, port,namespace);
+        ingressYaml = addRuleToExistingIngress(existingIngress, serviceName, host, port, namespace);
       } else {
-        // If the Ingress file does not exist, create a new one
-        const rules = [{ host: `${host}.idp.insparkconnect.com`, serviceName, port }];
+        const rules = [{ host: `${host}.idp.insparkconnect.com`, serviceName, port, namespace }];
         ingressYaml = generateIngress(rules);
       }
 
       fs.writeFileSync(ingressFilePath, ingressYaml);
-
-      // Apply the generated Ingress file using kubectl
-     // await applyK8sFileWithKubectl(ingressFilePath);
     }
 
     res.status(201).json({ msg: 'Deployment file generated and applied', deploymentFilePath });
@@ -512,7 +504,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: idp-poc-staging-ingress
-  namespace: ${rule.namespace}
+  namespace: ${rules[0].namespace}  # Ensure this takes the namespace from the first rule
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
@@ -525,7 +517,7 @@ spec:
 ${rulesYaml}
 `;
 };
-const addRuleToExistingIngress = (existingIngress, serviceName, host, port) => {
+const addRuleToExistingIngress = (existingIngress, serviceName, host, port, namespace) => {
   const newRule = `
     - host: ${host}.idp.insparkconnect.com
       http:
@@ -538,7 +530,12 @@ const addRuleToExistingIngress = (existingIngress, serviceName, host, port) => {
               port:
                 number: ${port}
   `;
-  
-  const splitIngress = existingIngress.split('rules:');
+
+  const ingressWithNamespace = existingIngress.replace(
+    /namespace: .+/,
+    `namespace: ${namespace}`
+  );
+
+  const splitIngress = ingressWithNamespace.split('rules:');
   return `${splitIngress[0]}rules:${splitIngress[1]}${newRule}`;
 };
