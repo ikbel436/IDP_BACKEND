@@ -10,9 +10,13 @@ const DeploymentSchema = new Schema({
     type: String,
     required: true
   },
+  namespace:{
+type: String,
+required: true
+  },
   project: [{
     type: ObjectId,
-    ref: 'project',
+    ref: 'bundle',
     required: true
   }],
 

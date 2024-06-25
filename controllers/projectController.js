@@ -175,18 +175,31 @@ const generateK8sDir = () => {
   }
   return dir;
 };
-
-const applyK8sFilesInSequence = async (filePaths) => {
+const createNamespace = (namespace) => {
+  return new Promise((resolve, reject) => {
+    exec(`kubectl create namespace ${namespace}`, (error, stdout, stderr) => {
+      if (error) {
+        return reject(`error: ${error.message}`);
+      }
+      if (stderr && !stderr.includes('AlreadyExists')) {
+        return reject(`stderr: ${stderr}`);
+      }
+      resolve(stdout);
+    });
+  });
+};
+const applyK8sFilesInSequence = async (filePaths, namespace) => {
   for (const filePath of filePaths) {
     if (filePath) {
-      await applyK8sFileWithKubectl(filePath);
+      await applyK8sFileWithKubectl(filePath, namespace);
     }
   }
 };
 
-const applyK8sFileWithKubectl = (filePath) => {
+
+const applyK8sFileWithKubectl = (filePath, namespace) => {
   return new Promise((resolve, reject) => {
-    exec(`kubectl apply -f ${filePath}`, (error, stdout, stderr) => {
+    exec(`kubectl apply -f ${filePath} -n ${namespace}`, (error, stdout, stderr) => {
       if (error) {
         return reject(`error: ${error.message}`);
       }
@@ -199,7 +212,7 @@ const applyK8sFileWithKubectl = (filePath) => {
 };
 
 exports.applyGeneratedK8sFiles = async (req, res) => {
-  const { files, name, description, projects } = req.body;
+  const { files, name, description, bundles } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -214,16 +227,18 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
     if (!files || !Array.isArray(files)) {
       return res.status(400).json({ msg: "Invalid input. 'files' should be an array of file paths." });
     }
-
+    const namespace = `${name}-namespace`;
     try {
-      await applyK8sFilesInSequence(files);
+      await createNamespace(namespace);
+      await applyK8sFilesInSequence(files, namespace);
       // Save the deployment information with status 'passed'
       const deployment = new Deployment({
         name,
         description,
-        project: projects,
+        bundle: bundles,
         user: userId,
-        status: 'passed'
+        status: 'passed',
+        namespace 
       });
       await deployment.save();
 
@@ -236,9 +251,10 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
       const deployment = new Deployment({
         name,
         description,
-        project: projects,
+        bundle: bundles,
         user: userId,
-        status: 'failed'
+        status: 'failed',
+        namespace 
       });
       await deployment.save();
 
@@ -297,13 +313,13 @@ exports.generateConfigMapFile = async (req, res) => {
     res.status(500).json({ errors: error.message });
   }
 };
-const generateDatabaseDeployment = (dbType, serviceName, dbName, port, envVariables) => {
+const generateDatabaseDeployment = (dbType, serviceName, dbName, port, envVariables,namespace) => {
   const serviceYaml = `
 apiVersion: v1
 kind: Service
 metadata:
   name: ${serviceName}-service
-  namespace: achat-depl
+  namespace: ${namespace}
 spec:
   ports:
   - port: ${port}
@@ -318,7 +334,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${serviceName}
-  namespace: achat-depl
+  namespace: ${namespace}
 spec:
   replicas: 1
   selector:
@@ -351,7 +367,7 @@ ${envVariables.map(envVar => `
   return serviceYaml + deploymentYaml;
 };
 exports.generateDataBaseFile = async (req, res) =>{
-  const { dbType, serviceName, dbName, port, envVariables } = req.body;
+  const { dbType, serviceName, dbName, port, envVariables,namespace } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -363,7 +379,7 @@ exports.generateDataBaseFile = async (req, res) =>{
     const decoded = jwt.verify(token, config.get('secretOrKey'));
     const userId = decoded.id;
 
-    const deploymentYaml = generateDatabaseDeployment(dbType, serviceName, dbName, port, envVariables);
+    const deploymentYaml = generateDatabaseDeployment(dbType, serviceName, dbName, port, envVariables,namespace);
     const k8sDir = generateK8sDir();
     const deploymentFilePath = path.join(k8sDir, `${serviceName}-deployment.yaml`);
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
@@ -376,13 +392,13 @@ exports.generateDataBaseFile = async (req, res) =>{
     res.status(500).json({ errors: error.message });
   }
 };
-const generateSpringBootDeployment = (serviceName, port, image, envVariables) => {
+const generateSpringBootDeployment = (serviceName, port, image, envVariables,namespace) => {
   const serviceYaml = `
 apiVersion: v1
 kind: Service
 metadata:
   name: ${serviceName}-service
-  namespace: achat-depl
+  namespace: ${namespace}
 spec:
   type: NodePort
   selector:
@@ -398,7 +414,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${serviceName}
-  namespace: achat-depl
+  namespace: ${namespace}
 spec:
   replicas: 1
   selector:
@@ -431,7 +447,7 @@ ${envVariables.map(envVar => `
   return serviceYaml + deploymentYaml;
 };
 exports.generateDeploymentFile = async (req, res) => {
-  const { serviceName, port, image, envVariables, expose, host } = req.body;
+  const { serviceName, port, image, envVariables, expose, host,namespace } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -443,7 +459,7 @@ exports.generateDeploymentFile = async (req, res) => {
     const decoded = jwt.verify(token, config.get('secretOrKey'));
     const userId = decoded.id;
 
-    const deploymentYaml = generateSpringBootDeployment(serviceName, port, image, envVariables);
+    const deploymentYaml = generateSpringBootDeployment(serviceName, port, image, envVariables,namespace);
     const k8sDir = generateK8sDir();
     const deploymentFilePath = path.join(k8sDir, `${serviceName}-deployment.yaml`);
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
@@ -458,7 +474,7 @@ exports.generateDeploymentFile = async (req, res) => {
       if (fs.existsSync(ingressFilePath)) {
         // If the Ingress file already exists, read and modify it
         const existingIngress = fs.readFileSync(ingressFilePath, 'utf8');
-        ingressYaml = addRuleToExistingIngress(existingIngress, serviceName, host, port);
+        ingressYaml = addRuleToExistingIngress(existingIngress, serviceName, host, port,namespace);
       } else {
         // If the Ingress file does not exist, create a new one
         const rules = [{ host: `${host}.idp.insparkconnect.com`, serviceName, port }];
@@ -495,7 +511,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: idp-poc-staging-ingress
-  namespace: achat-depl
+  namespace: ${rule.namespace}
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
