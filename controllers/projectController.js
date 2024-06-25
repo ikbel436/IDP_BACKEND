@@ -385,11 +385,12 @@ exports.generateDataBaseFile = async (req, res) =>{
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
 
     // Apply the generated deployment file using kubectl
-    await applyK8sFileWithKubectl(deploymentFilePath);
+   // await applyK8sFileWithKubectl(deploymentFilePath);
 
     res.status(201).json({ msg: 'Database deployment file generated and applied', deploymentFilePath });
   } catch (error) {
     res.status(500).json({ errors: error.message });
+    console.log(error);
   }
 };
 const generateSpringBootDeployment = (serviceName, port, image, envVariables,namespace) => {
@@ -465,7 +466,7 @@ exports.generateDeploymentFile = async (req, res) => {
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
 
     // Apply the generated deployment file using kubectl
-    await applyK8sFileWithKubectl(deploymentFilePath);
+   // await applyK8sFileWithKubectl(deploymentFilePath);
 
     if (expose) {
       const ingressFilePath = path.join(k8sDir, `idp-poc-staging-ingress.yaml`);
@@ -484,7 +485,7 @@ exports.generateDeploymentFile = async (req, res) => {
       fs.writeFileSync(ingressFilePath, ingressYaml);
 
       // Apply the generated Ingress file using kubectl
-      await applyK8sFileWithKubectl(ingressFilePath);
+     // await applyK8sFileWithKubectl(ingressFilePath);
     }
 
     res.status(201).json({ msg: 'Deployment file generated and applied', deploymentFilePath });
