@@ -14,7 +14,7 @@ const DeploymentSchema = new Schema({
 type: String,
 required: true
   },
-  project: [{
+  bundle: [{
     type: ObjectId,
     ref: 'bundle',
     required: true

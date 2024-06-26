@@ -175,8 +175,25 @@ const generateK8sDir = () => {
   }
   return dir;
 };
-const createNamespace = (namespace) => {
+const namespaceExists = (namespace) => {
   return new Promise((resolve, reject) => {
+    exec(`kubectl get namespace ${namespace}`, (error, stdout, stderr) => {
+      if (error) {
+        // If the namespace does not exist, kubectl will return an error
+        return resolve(false);
+      }
+      resolve(true);
+    });
+  });
+};
+
+const createNamespace = (namespace) => {
+  return new Promise(async (resolve, reject) => {
+    const exists = await namespaceExists(namespace);
+    if (exists) {
+      return resolve(`Namespace ${namespace} already exists`);
+    }
+
     exec(`kubectl create namespace ${namespace}`, (error, stdout, stderr) => {
       if (error) {
         return reject(`error: ${error.message}`);
@@ -188,6 +205,7 @@ const createNamespace = (namespace) => {
     });
   });
 };
+
 const applyK8sFilesInSequence = async (filePaths, namespace) => {
   for (const filePath of filePaths) {
     if (filePath) {
@@ -210,9 +228,8 @@ const applyK8sFileWithKubectl = (filePath, namespace) => {
     });
   });
 };
-
 exports.applyGeneratedK8sFiles = async (req, res) => {
-  const { files, name, description, bundles } = req.body;
+  const { files, name, description, bundles, namespace } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -227,10 +244,16 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
     if (!files || !Array.isArray(files)) {
       return res.status(400).json({ msg: "Invalid input. 'files' should be an array of file paths." });
     }
-    const namespace = `${name}-namespace`;
+
+    const sanitizedNamespace = namespace
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/^-+|-+$/g, '');
+
     try {
-      await createNamespace(namespace);
-      await applyK8sFilesInSequence(files, namespace);
+      await createNamespace(sanitizedNamespace);
+      await applyK8sFilesInSequence(files, sanitizedNamespace);
+      
       // Save the deployment information with status 'passed'
       const deployment = new Deployment({
         name,
@@ -238,7 +261,7 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
         bundle: bundles,
         user: userId,
         status: 'passed',
-        namespace 
+        namespace: sanitizedNamespace
       });
       await deployment.save();
 
@@ -254,19 +277,20 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
         bundle: bundles,
         user: userId,
         status: 'failed',
-        namespace 
+        namespace: sanitizedNamespace
       });
       await deployment.save();
 
       // Update the user document to include this deployment
       await User.findByIdAndUpdate(userId, { $push: { myDeployments: deployment._id } });
-
-      return res.status(500).json({ errors: error });
+console.log(error)
+      return res.status(500).json({ errors: error.message });
     }
   } catch (error) {
     res.status(500).json({ errors: error.message });
   }
 };
+
 // Function to generate ConfigMap with user-provided key-value pairs
 const generateConfigMap = (data) => {
   let dataYaml = '';
@@ -314,12 +338,17 @@ exports.generateConfigMapFile = async (req, res) => {
   }
 };
 const generateDatabaseDeployment = (dbType, serviceName, dbName, port, envVariables,namespace) => {
+  const sanitizedNamespace = namespace
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/^-+|-+$/g, '');
+ 
   const serviceYaml = `
 apiVersion: v1
 kind: Service
 metadata:
   name: ${serviceName}-service
-  namespace: ${namespace}
+  namespace: ${sanitizedNamespace}
 spec:
   ports:
   - port: ${port}
@@ -334,7 +363,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${serviceName}
-  namespace: ${namespace}
+  namespace: ${sanitizedNamespace}
 spec:
   replicas: 1
   selector:
@@ -394,12 +423,16 @@ exports.generateDataBaseFile = async (req, res) =>{
   }
 };
 const generateSpringBootDeployment = (serviceName, port, image, envVariables,namespace) => {
+  const sanitizedNamespace = namespace
+  .toLowerCase()
+  .replace(/[^a-z0-9-]/g, '-')
+  .replace(/^-+|-+$/g, '');
   const serviceYaml = `
 apiVersion: v1
 kind: Service
 metadata:
   name: ${serviceName}-service
-  namespace: ${namespace}
+  namespace: ${sanitizedNamespace}
 spec:
   type: NodePort
   selector:
@@ -415,7 +448,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${serviceName}
-  namespace: ${namespace}
+  namespace: ${sanitizedNamespace}
 spec:
   replicas: 1
   selector:
@@ -451,7 +484,10 @@ exports.generateDeploymentFile = async (req, res) => {
   const { serviceName, port, image, envVariables, expose, host, namespace } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
-
+  const sanitizedNamespace = namespace
+  .toLowerCase()
+  .replace(/[^a-z0-9-]/g, '-')
+  .replace(/^-+|-+$/g, '');
   if (!token) {
     return res.status(401).json({ msg: 'No token provided' });
   }
@@ -460,7 +496,7 @@ exports.generateDeploymentFile = async (req, res) => {
     const decoded = jwt.verify(token, config.get('secretOrKey'));
     const userId = decoded.id;
 
-    const deploymentYaml = generateSpringBootDeployment(serviceName, port, image, envVariables, namespace);
+    const deploymentYaml = generateSpringBootDeployment(serviceName, port, image, envVariables, sanitizedNamespace);
     const k8sDir = generateK8sDir();
     const deploymentFilePath = path.join(k8sDir, `${serviceName}-deployment.yaml`);
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
@@ -471,9 +507,9 @@ exports.generateDeploymentFile = async (req, res) => {
 
       if (fs.existsSync(ingressFilePath)) {
         const existingIngress = fs.readFileSync(ingressFilePath, 'utf8');
-        ingressYaml = addRuleToExistingIngress(existingIngress, serviceName, host, port, namespace);
+        ingressYaml = addRuleToExistingIngress(existingIngress, serviceName, host, port, sanitizedNamespace);
       } else {
-        const rules = [{ host: `${host}.idp.insparkconnect.com`, serviceName, port, namespace }];
+        const rules = [{ host: `${host}.idp.insparkconnect.com`, serviceName, port, sanitizedNamespace }];
         ingressYaml = generateIngress(rules);
       }
 
@@ -486,6 +522,7 @@ exports.generateDeploymentFile = async (req, res) => {
   }
 };
 const generateIngress = (rules) => {
+ 
   const rulesYaml = rules.map(rule => `
     - host: ${rule.host}
       http:
