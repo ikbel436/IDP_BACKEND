@@ -216,8 +216,10 @@ const applyK8sFilesInSequence = async (filePaths, namespace) => {
 
 
 const applyK8sFileWithKubectl = (filePath, namespace) => {
+  // Ensure the file path is correctly formatted for Windows
+  const correctedPath = filePath.replace(/\\/g, '/');
   return new Promise((resolve, reject) => {
-    exec(`kubectl apply -f ${filePath} -n ${namespace}`, (error, stdout, stderr) => {
+    exec(`kubectl apply -f "${correctedPath}" -n ${namespace}`, (error, stdout, stderr) => {
       if (error) {
         return reject(`error: ${error.message}`);
       }
@@ -228,6 +230,7 @@ const applyK8sFileWithKubectl = (filePath, namespace) => {
     });
   });
 };
+
 exports.applyGeneratedK8sFiles = async (req, res) => {
   const { files, name, description, bundles, namespace } = req.body;
   const authHeader = req.headers.authorization;
