@@ -543,13 +543,13 @@ metadata:
   name: idp-poc-staging-ingress
   namespace: ${rules[0].namespace}  # Ensure this takes the namespace from the first rule
   annotations:
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/group.name: idp-poc-cluster-alb-ingress-group
   labels:
     app: idp-staging-apps
 spec:
+  ingressClassName: alb
   rules:
 ${rulesYaml}
 `;
