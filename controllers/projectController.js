@@ -216,8 +216,10 @@ const applyK8sFilesInSequence = async (filePaths, namespace) => {
 
 
 const applyK8sFileWithKubectl = (filePath, namespace) => {
+  // Ensure the file path is correctly formatted for Windows
+  const correctedPath = filePath.replace(/\\/g, '/');
   return new Promise((resolve, reject) => {
-    exec(`kubectl apply -f ${filePath} -n ${namespace}`, (error, stdout, stderr) => {
+    exec(`kubectl apply -f "${correctedPath}" -n ${namespace}`, (error, stdout, stderr) => {
       if (error) {
         return reject(`error: ${error.message}`);
       }
@@ -228,6 +230,7 @@ const applyK8sFileWithKubectl = (filePath, namespace) => {
     });
   });
 };
+
 exports.applyGeneratedK8sFiles = async (req, res) => {
   const { files, name, description, bundles, namespace } = req.body;
   const authHeader = req.headers.authorization;
@@ -502,7 +505,7 @@ exports.generateDeploymentFile = async (req, res) => {
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
 
     if (expose) {
-      const ingressFilePath = path.join(k8sDir, `idp-poc-staging-ingress.yaml`);
+      const ingressFilePath = path.join(k8sDir, `${serviceName}-ingress.yaml`);
       let ingressYaml = '';
 
       if (fs.existsSync(ingressFilePath)) {
@@ -541,7 +544,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: idp-poc-staging-ingress
-  namespace: ${rules[0].namespace}  # Ensure this takes the namespace from the first rule
+  namespace: ${rules[0].sanitizedNamespace}  
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
