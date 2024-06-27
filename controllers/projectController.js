@@ -215,9 +215,16 @@ const applyK8sFilesInSequence = async (filePaths, namespace) => {
 };
 
 
+
 const applyK8sFileWithKubectl = (filePath, namespace) => {
+  // Check if filePath is a string; if not, throw an error or handle accordingly
+  if (typeof filePath!== 'string') {
+    throw new Error('filePath must be a string');
+  }
+
   // Ensure the file path is correctly formatted for Windows
   const correctedPath = filePath.replace(/\\/g, '/');
+
   return new Promise((resolve, reject) => {
     exec(`kubectl apply -f "${correctedPath}" -n ${namespace}`, (error, stdout, stderr) => {
       if (error) {
@@ -244,18 +251,18 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
     const decoded = jwt.verify(token, config.get("secretOrKey"));
     const userId = decoded.id;
 
-    if (!files || !Array.isArray(files)) {
+    if (!files ||!Array.isArray(files)) {
       return res.status(400).json({ msg: "Invalid input. 'files' should be an array of file paths." });
     }
 
     const sanitizedNamespace = namespace
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/^-+|-+$/g, '');
+     .toLowerCase()
+     .replace(/[^a-z0-9-]/g, '-')
+     .replace(/^-+|-+$/g, '');
 
     try {
       await createNamespace(sanitizedNamespace);
-      await applyK8sFilesInSequence(files, sanitizedNamespace);
+      await applyK8sFilesInSequence(files, sanitizedNamespace); // Ensure this function is called with the correct arguments
       
       // Save the deployment information with status 'passed'
       const deployment = new Deployment({
@@ -286,13 +293,14 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
 
       // Update the user document to include this deployment
       await User.findByIdAndUpdate(userId, { $push: { myDeployments: deployment._id } });
-console.log(error)
+      console.log(error)
       return res.status(500).json({ errors: error.message });
     }
   } catch (error) {
     res.status(500).json({ errors: error.message });
   }
 };
+
 
 // Function to generate ConfigMap with user-provided key-value pairs
 const generateConfigMap = (data) => {
@@ -417,8 +425,6 @@ exports.generateDataBaseFile = async (req, res) =>{
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
 
     // Apply the generated deployment file using kubectl
-   // await applyK8sFileWithKubectl(deploymentFilePath);
-
     res.status(201).json({ msg: 'Database deployment file generated and applied', deploymentFilePath });
   } catch (error) {
     res.status(500).json({ errors: error.message });
@@ -497,26 +503,26 @@ exports.generateDeploymentFile = async (req, res) => {
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-')
     .replace(/^-+|-+$/g, '');
-
+ 
   if (!token) {
     return res.status(401).json({ msg: 'No token provided' });
   }
-
+ 
   try {
     const decoded = jwt.verify(token, config.get('secretOrKey'));
     const userId = decoded.id;
-
+ 
     const deploymentYaml = generateSpringBootDeployment(serviceName, port, image, envVariables, sanitizedNamespace);
     const k8sDir = generateK8sDir();
     const deploymentFilePath = path.join(k8sDir, `${serviceName}-deployment.yaml`);
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
-
+ 
     let ingressFilePath = null;
-
+ 
     if (expose) {
       ingressFilePath = path.join(k8sDir, 'ingress.yaml');
       let ingressYaml = '';
-
+ 
       if (fs.existsSync(ingressFilePath)) {
         const existingIngress = fs.readFileSync(ingressFilePath, 'utf8');
         ingressYaml = addRuleToExistingIngress(existingIngress, serviceName, host, port, sanitizedNamespace);
@@ -524,14 +530,14 @@ exports.generateDeploymentFile = async (req, res) => {
         const rules = [{ host: `${host}.idp.insparkconnect.com`, serviceName, port, sanitizedNamespace }];
         ingressYaml = generateIngress(rules);
       }
-
+ 
       fs.writeFileSync(ingressFilePath, ingressYaml);
     }
-
-    res.status(201).json({ 
-      msg: 'Deployment files generated and applied', 
-      deploymentFilePath, 
-      ingressFilePath 
+ 
+    res.status(201).json({
+      msg: 'Deployment files generated and applied',
+      deploymentFilePath,
+      ingressFilePath
     });
   } catch (error) {
     res.status(500).json({ errors: error.message });
@@ -567,7 +573,7 @@ metadata:
     app: idp-staging-apps
 spec:
   ingressClassName: alb
-  rules:
+  rules: 
 ${rulesYaml}
 `;
 };
