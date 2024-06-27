@@ -511,8 +511,10 @@ exports.generateDeploymentFile = async (req, res) => {
     const deploymentFilePath = path.join(k8sDir, `${serviceName}-deployment.yaml`);
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
 
+    let ingressFilePath = null;
+
     if (expose) {
-      const ingressFilePath = path.join(k8sDir, `${serviceName}-ingress.yaml`);
+      ingressFilePath = path.join(k8sDir, 'ingress.yaml');
       let ingressYaml = '';
 
       if (fs.existsSync(ingressFilePath)) {
@@ -526,11 +528,16 @@ exports.generateDeploymentFile = async (req, res) => {
       fs.writeFileSync(ingressFilePath, ingressYaml);
     }
 
-    res.status(201).json({ msg: 'Deployment file generated and applied', deploymentFilePath });
+    res.status(201).json({ 
+      msg: 'Deployment files generated and applied', 
+      deploymentFilePath, 
+      ingressFilePath 
+    });
   } catch (error) {
     res.status(500).json({ errors: error.message });
   }
 };
+
 const generateIngress = (rules) => {
  
   const rulesYaml = rules.map(rule => `

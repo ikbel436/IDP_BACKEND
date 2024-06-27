@@ -53,8 +53,71 @@ const retreive = [
     },
   ];
   
+// Retrieve all deployments for admin
+const getAllDeploymentsForAdmin = async (req, res) => {
+    try {
+      const users = await User.find().populate({
+        path: 'myDeployments',
+        populate: { path: 'bundle', select: 'name description' }
+      });
+  
+      let deployments = [];
+      users.forEach(user => {
+        user.myDeployments.forEach(deployment => {
+          deployments.push({
+            ...deployment.toObject(),
+            user: { name: user.name, email: user.email }
+          });
+        });
+      });
+  
+      return res.status(200).json(deployments);
+    } catch (error) {
+      res.status(500).json({ errors: error.message });
+    }
+  };
+  
+  // Retrieve deployments for the logged-in user
+  const getDeploymentsForUser = async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id).populate({
+        path: 'myDeployments',
+        populate: { path: 'bundle', select: 'name description' }
+      });
+  
+      if (!user) {
+        return res.status(404).json({ msg: 'User not found' });
+      }
+  
+      const deployments = user.myDeployments.map(deployment => ({
+        ...deployment.toObject(),
+        user: { name: user.name, email: user.email }
+      }));
+  
+      return res.status(200).json(deployments);
+    } catch (error) {
+      res.status(500).json({ errors: error.message });
+    }
+  };
+  
+  // Main function to retrieve deployments based on user role
+  const getDeployments = async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id);
+  
+      if (user.Role === 'admin') {
+        return getAllDeploymentsForAdmin(req, res);
+      } else {
+        return getDeploymentsForUser(req, res);
+      }
+    } catch (error) {
+      res.status(500).json({ errors: error.message });
+    }
+  };
+  
 module.exports = {
   verifyToken,
   retreive ,
-  allDeployments
+  allDeployments,
+  getDeployments
 };
