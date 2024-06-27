@@ -425,11 +425,12 @@ exports.generateDataBaseFile = async (req, res) =>{
     console.log(error);
   }
 };
-const generateSpringBootDeployment = (serviceName, port, image, envVariables,namespace) => {
+const generateSpringBootDeployment = (serviceName, port, image, envVariables, namespace) => {
   const sanitizedNamespace = namespace
-  .toLowerCase()
-  .replace(/[^a-z0-9-]/g, '-')
-  .replace(/^-+|-+$/g, '');
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/^-+|-+$/g, '');
+
   const serviceYaml = `
 apiVersion: v1
 kind: Service
@@ -445,6 +446,21 @@ spec:
     targetPort: ${port}
 ---
 `;
+
+  const envSection = envVariables && envVariables.length > 0 ? `
+        env:
+${envVariables.map(envVar => `
+        - name: ${envVar.name}
+          ${envVar.valueFrom ? `
+          valueFrom:
+            configMapKeyRef:
+              name: ${envVar.valueFrom.configMapName}
+              key: ${envVar.valueFrom.key}
+          ` : `
+          value: "${envVar.value}"
+          `}
+`).join('')}
+      ` : '';
 
   const deploymentYaml = `
 apiVersion: apps/v1
@@ -467,30 +483,21 @@ spec:
         image: ${image}
         ports:
         - containerPort: ${port}
-        env:
-${envVariables.map(envVar => `
-        - name: ${envVar.name}
-          ${envVar.valueFrom ? `
-          valueFrom:
-            configMapKeyRef:
-              name: ${envVar.valueFrom.configMapName}
-              key: ${envVar.valueFrom.key}
-          ` : `
-          value: "${envVar.value}"
-          `}
-`).join('')}
+${envSection}
 `;
 
   return serviceYaml + deploymentYaml;
 };
+
 exports.generateDeploymentFile = async (req, res) => {
   const { serviceName, port, image, envVariables, expose, host, namespace } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
   const sanitizedNamespace = namespace
-  .toLowerCase()
-  .replace(/[^a-z0-9-]/g, '-')
-  .replace(/^-+|-+$/g, '');
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/^-+|-+$/g, '');
+
   if (!token) {
     return res.status(401).json({ msg: 'No token provided' });
   }
