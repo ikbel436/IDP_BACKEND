@@ -1,0 +1,27 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: idp-poc-staging-ingress
+  namespace: my-namespace 
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/group.name: idp-poc-cluster-alb-ingress-group
+  labels:
+    app: idp-staging-apps
+spec:
+  ingressClassName: alb
+  rules:
+
+    - host: my-service-host.idp.insparkconnect.com
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: my-service-service
+              port:
+                number: 8080
+  

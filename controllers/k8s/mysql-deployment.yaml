@@ -32,12 +32,7 @@ spec:
         image: mysql:5.7
         env:
 
-        - name: MYSQL_ROOT_PASSWORD
-          
-          value: "root"
-          
-
-        - name: MYSQL_DATABASE
+        - name: name
           
           value: "root"
           
