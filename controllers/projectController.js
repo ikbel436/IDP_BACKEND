@@ -505,7 +505,7 @@ exports.generateDeploymentFile = async (req, res) => {
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
 
     if (expose) {
-      const ingressFilePath = path.join(k8sDir, `${serviceName}-ingress.yaml`);
+      const ingressFilePath = path.join(k8sDir, `ingress.yaml`);
       let ingressYaml = '';
 
       if (fs.existsSync(ingressFilePath)) {
@@ -553,7 +553,7 @@ metadata:
     app: idp-staging-apps
 spec:
   ingressClassName: alb
-  rules:
+  rules: 
 ${rulesYaml}
 `;
 };
