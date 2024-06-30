@@ -12,22 +12,11 @@ router.put('/create-workflow', async (req, res) => {
     }
 });
 
-router.get('/yaml', async (req, res) => {
-    const { platform } = req.params;
-    if (!platform) {
-        return res.status(400).json({ message: 'Platform not specified in request body' });
-    }
-    try {
-        const yamlData = await workflowController.readYaml({ platform });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Failed to read YAML file.');
-    }
-});
+
 
 router.put('/yaml', async (req, res) => {
     const { owner, token, repo, platform, yamlData } = req.body;
-    if (!owner || !token || !repo || !platform || !yamlData) {
+    if (!platform || !yamlData) {
         return res.status(400).json({ message: 'Required parameters are missing in request body' });
     }
     try {
@@ -35,6 +24,35 @@ router.put('/yaml', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send('Failed to update YAML file.');
+    }
+});
+router.put('/yaml/branches', async (req, res) => {
+    const { platform, branches } = req.body;
+
+    if (!platform || !branches) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    try {
+        const result = await workflowController.updateYamlBranches({ platform, branches });
+        res.status(200).json({ success: result });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Failed to update YAML file.');
+    }
+});
+
+router.get('/yaml/get', async (req, res) => {
+    const { platform } = req.query;
+    if (!platform) {
+        return res.status(400).json({ message: 'Platform not specified in request body' });
+    }
+    try {
+        const yamlData = await workflowController.readYaml({ platform });
+        res.status(200).json(yamlData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Failed to read YAML file.');
     }
 });
 
