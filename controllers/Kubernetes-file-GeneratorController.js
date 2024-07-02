@@ -3,6 +3,7 @@ const path = require("path");
 const jwt = require('jsonwebtoken');
 const { execSync } = require('child_process');
 const config = require('config');
+const { exec } = require('child_process');
 
 // Function to generate the Kubernetes Pod YAML file
 const generatePodYaml = (
@@ -472,7 +473,7 @@ exports.applyGeneratedK8sFiles = async (req, res) => {
      .replace(/^-+|-+$/g, '');
 
     try {
-      await createNamespace(sanitizedNamespace);
+      // await createNamespace(sanitizedNamespace);
       await applyK8sFilesInSequence(files, sanitizedNamespace); // Ensure this function is called with the correct arguments
       
       // Save the deployment information with status 'passed'
@@ -718,11 +719,13 @@ spec:
 
 
 
-const createDockerRegistrySecret = (secretName, dockerUsername, dockerPassword, dockerEmail, namespace) => {
+const createDockerRegistrySecret = async (secretName, dockerUsername, dockerPassword, dockerEmail, namespace) => {
   const sanitizedNamespace = namespace
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-')
     .replace(/^-+|-+$/g, '');
+    
+    await createNamespace(sanitizedNamespace);
 
   const command = `kubectl create secret docker-registry ${secretName} --docker-username=${dockerUsername} --docker-password=${dockerPassword} --docker-email=${dockerEmail} --namespace=${sanitizedNamespace}`;
   execSync(command);
