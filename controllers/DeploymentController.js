@@ -58,7 +58,14 @@ const getAllDeploymentsForAdmin = async (req, res) => {
     try {
       const users = await User.find().populate({
         path: 'myDeployments',
-        populate: { path: 'bundle', select: 'name description' }
+        populate: {
+          path: 'bundle',
+          select: 'name description',
+          populate: {
+            path: 'Projects',
+            select: 'name description'
+          }
+        }
       });
   
       let deployments = [];
@@ -82,7 +89,14 @@ const getAllDeploymentsForAdmin = async (req, res) => {
     try {
       const user = await User.findById(req.user.id).populate({
         path: 'myDeployments',
-        populate: { path: 'bundle', select: 'name description' }
+        populate: {
+          path: 'bundle',
+          select: 'name description',
+          populate: {
+            path: 'Projects',
+            select: 'name description'
+          }
+        }
       });
   
       if (!user) {
