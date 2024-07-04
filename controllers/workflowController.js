@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 
 const filePaths = {
-    dockerhub: path.join(__dirname, '../CI-Pipelines/dockerhub-publish.yml'),
+    dockerhub: path.join(__dirname, '../CI-Pipelines/docker-image.yml'),
     github: path.join(__dirname, '../CI-Pipelines/docker-publish.yml')
 };
 
@@ -36,8 +36,6 @@ const updateYaml = async ({ platform, yamlData }) => {
     try {
         const yamlContent = yaml.dump(yamlData);
         await fs.writeFile(file, yamlContent, 'utf8');
-
-        // await pushWorkflowToFile({ owner, token, repo, platform });
 
         return true;
     } catch (e) {
@@ -84,11 +82,27 @@ const updateYamlBranches = async ({ platform, branches }) => {
 
 async function pushWorkflowToFile(body) {
     const { owner, token, repo, platform } = body;
-    const filePath = '.github/workflows/docker-publish.yml';
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
-    const fileContent = await fs.readFile('./CI-Pipelines/docker-publish.yml', 'utf8');
+    const filePathTemplate = filePaths[platform];
 
-    const sha = await getLatestSha(owner, repo, filePath, token);
+    if (!filePathTemplate) {
+        throw new Error('Invalid platform specified');
+    }
+
+    const filePath = platform === 'dockerhub' ? '.github/workflows/docker-image.yml' : '.github/workflows/docker-publish.yml';
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
+    const fileContent = await fs.readFile(filePathTemplate, 'utf8');
+
+    //const sha = await getLatestSha(owner, repo, filePath, token);
+    let sha;
+    try {
+        sha = await getLatestSha(owner, repo, filePath, token);
+    } catch (error) {
+        if (error.message.includes('No commits found for the specified file path')) {
+            sha = null; // File does not exist, so no SHA to update
+        } else {
+            throw error;
+        }
+    }
 
     const response = await fetch(url, {
         method: 'PUT',
@@ -99,7 +113,7 @@ async function pushWorkflowToFile(body) {
         body: JSON.stringify({
             message: 'Update nodejs workflow',
             content: Buffer.from(fileContent).toString('base64'),
-            sha
+            sha: sha || undefined
         })
     });
 
@@ -108,8 +122,10 @@ async function pushWorkflowToFile(body) {
     }
 }
 
+
 async function getLatestSha(owner, repo, filePath, token) {
     const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?path=${encodeURIComponent(filePath)}`;
+    console.log(`Fetching latest SHA for URL: ${url}`); // Debugging line
     const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -120,6 +136,12 @@ async function getLatestSha(owner, repo, filePath, token) {
     if (!response.ok) {
         throw new Error(`Failed to fetch latest commit SHA: ${await response.text()}`);
     }
-    return response.json().then(data => data[0].sha);
+    const data = await response.json();
+    console.log(`SHA Data: ${JSON.stringify(data, null, 2)}`); // Debugging line
+    if (!data || data.length === 0) {
+        throw new Error('No commits found for the specified file path.');
+    }
+    return data[0].sha;
 }
+
 module.exports = { pushWorkflowToFile, readYaml, updateYaml, updateYamlBranches };

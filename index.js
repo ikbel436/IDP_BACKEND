@@ -18,6 +18,7 @@ const ReposRoute = require('./routes/ReposRoute');
 const cloudServiceRoutes = require('./routes/CloudServiceRoutes');
 const bundleRoutes = require('./routes/bundleRoutes');
 const workflow = require('./routes/workflowRoutes');
+const actionRoute = require('./routes/actionRoute');
 const corsOptions = {
   origin: 'http://localhost:4200',
   credentials: true
@@ -43,6 +44,7 @@ app.use('/Repos', ReposRoute)
 app.use('/api/cloudservices', cloudServiceRoutes);
 app.use('/Bundle', bundleRoutes);
 app.use('/pipCI', workflow);
+app.use('/api/actions', actionRoute);
 
 
 
