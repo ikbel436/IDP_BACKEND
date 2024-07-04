@@ -5,6 +5,7 @@ const User = mongoose.model('user');
 const config = require('config');
 const secretOrKey = config.get('secretOrKey');
 
+
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
