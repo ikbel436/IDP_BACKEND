@@ -37,6 +37,10 @@ const userSchema = mongoose.Schema({
       ref: "project",
     },
   ],
+  myDeployments: [{
+    type: ObjectId,
+    ref: 'Deployment'
+  }],
   myRepo: [
     {
       type: ObjectId,

@@ -8,8 +8,8 @@ const jwt = require("jsonwebtoken");
 const cloudinary = require("cloudinary").v2;
 const archiver = require("archiver");
 const AWS = require("aws-sdk");
-
-
+const { exec } = require('child_process');
+const Deployment = require('../models/Deployment.js');
 
 // create project and assign it to a user
 exports.createProject = async (req, res) => {

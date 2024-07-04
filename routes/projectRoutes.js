@@ -10,7 +10,7 @@ const {
 updateProject,
 deleteProject,
 retreive,
-retreivebyId
+retreivebyId,generateConfigMapFile,generateDataBaseFile,generateDeploymentFile,applyGeneratedK8sFiles
 
 } = require("../controllers/projectController.js");
 
