@@ -669,40 +669,39 @@ spec:
   ports:
   - port: ${port}
     targetPort: ${port}
----
 `;
 
-  const envSection =
-    envVariables && envVariables.length > 0
-      ? `
+  let envSection = "";
+  if (envVariables && envVariables.length > 0) {
+    envSection = `
         env:
 ${envVariables
-  .map(
-    (envVar) => `
+      .map(
+        (envVar) => `
           - name: ${envVar.name}
             ${
               envVar.valueFrom
                 ? `
-            valueFrom:
-              configMapKeyRef:
-                name: ${envVar.valueFrom.configMapName}
-                key: ${envVar.valueFrom.key}
+              valueFrom:
+                configMapKeyRef:
+                  name: ${envVar.valueFrom.configMapName}
+                  key: ${envVar.valueFrom.key}
             `
                 : `
-            value: "${envVar.value}"
+              value: "${envVar.value}"
             `
             }
 `
-  )
-  .join("")}
-      `
-      : "";
+      )
+      .join("\n")}
+`;
+  }
 
   const imagePullSecretsSection = imagePullSecretName
     ? `
       imagePullSecrets:
       - name: ${imagePullSecretName}
-  `
+`
     : "";
 
   const deploymentYaml = `
@@ -726,12 +725,15 @@ spec:
         image: ${image}
         ports:
         - containerPort: ${port}
-        ${imagePullSecretsSection}
-        ${envSection}
+${imagePullSecretsSection}
+${envSection}
 `;
 
   return serviceYaml + deploymentYaml;
 };
+
+
+
 
 const createDockerRegistrySecret = async (
   secretName,
