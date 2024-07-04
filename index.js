@@ -17,6 +17,8 @@ const { specs, swaggerUi } = require("./swagger");
 const ReposRoute = require('./routes/ReposRoute');
 const cloudServiceRoutes = require('./routes/CloudServiceRoutes');
 const bundleRoutes = require('./routes/bundleRoutes');
+const workflow = require('./routes/workflowRoutes');
+const actionRoute = require('./routes/actionRoute');
 const deploymentRoutes = require('./routes/DeploymentRoute');
 const corsOptions = {
   origin: 'http://localhost:4200',
@@ -42,7 +44,9 @@ app.use('/gitlab', GitLabRoute);
 app.use('/Repos', ReposRoute)
 app.use('/api/cloudservices', cloudServiceRoutes);
 app.use('/Bundle', bundleRoutes);
-app.use('/depl',deploymentRoutes)
+app.use('/pipCI', workflow);
+app.use('/api/actions', actionRoute);
+app.use('/depl', deploymentRoutes)
 
 
 // Start the server
