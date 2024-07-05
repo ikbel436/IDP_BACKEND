@@ -669,6 +669,7 @@ spec:
   ports:
   - port: ${port}
     targetPort: ${port}
+---
 `;
 
   let envSection = "";
@@ -678,20 +679,20 @@ spec:
 ${envVariables
       .map(
         (envVar) => `
-          - name: ${envVar.name}
-            ${
-              envVar.valueFrom
-                ? `
-              valueFrom:
-                configMapKeyRef:
-                  name: ${envVar.valueFrom.configMapName}
-                  key: ${envVar.valueFrom.key}
-            `
-                : `
-              value: "${envVar.value}"
-            `
-            }
-`
+        - name: ${envVar.name}
+          ${
+            envVar.valueFrom
+              ? `
+          valueFrom:
+            configMapKeyRef:
+              name: ${envVar.valueFrom.configMapName}
+              key: ${envVar.valueFrom.key}
+          `
+              : `
+          value: "${envVar.value}"
+          `
+          }
+      `
       )
       .join("\n")}
 `;
@@ -731,6 +732,7 @@ ${envSection}
 
   return serviceYaml + deploymentYaml;
 };
+
 
 
 
