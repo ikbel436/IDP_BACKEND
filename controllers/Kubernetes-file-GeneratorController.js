@@ -6,7 +6,188 @@ const config = require("config");
 const { exec } = require("child_process");
 const Deployment = require("../models/Deployment");
 const User = require("../models/User");
+const util = require('util');
+const execAsync = util.promisify(exec);
+require('dotenv').config();
 
+const generateArgoCDProject = (namespace) => {
+  return `
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: test-${namespace}-project
+  namespace: argocd
+spec:
+  sourceRepos:
+    - 'https://bitbucket.org/insparkconnect/idp-infra/src/main/'
+  destinations:
+    - namespace: ${namespace}
+      server: 'https://kubernetes.default.svc'
+  description: Project for ${namespace}'s test application
+  `;
+};
+const generateArgoCDApplication = (namespace, fileName) => {
+  return `
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${namespace}-test-app
+  namespace: argocd
+spec:
+  project: test-${namespace}-project
+  source:
+    repoURL: 'https://bitbucket.org/insparkconnect/idp-infra/src/main/'
+    path: applications/${namespace}
+    targetRevision: HEAD
+    directory:
+      recurse: true
+      jsonnet: {}
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: ${namespace}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  `;
+};
+const pushToBitbucket = async (namespace, filePaths) => {
+  const repoDir = `C:\\Users\\user\\Desktop\\kubernetes\\idp-infra`;
+  const argoAppsDir = path.join(repoDir, 'argo-apps');
+  const argoProjectsDir = path.join(repoDir, 'argo-project');
+  const username = process.env.BITBUCKET_USERNAME;
+  const appPassword = process.env.BITBUCKET_APP_PASSWORD;
+
+  if (!username || !appPassword) {
+    throw new Error('Bitbucket username or app password is not set in the environment variables');
+  }
+
+  try {
+    // Configure git to use the credential helper
+    await execAsync(`git config --global credential.helper store`);
+    
+    // Write credentials to .git-credentials file
+    const gitCredentials = `https://${username}:${appPassword}@bitbucket.org\n`;
+    fs.writeFileSync(path.join(process.env.HOME, '.git-credentials'), gitCredentials);
+
+    process.chdir(repoDir);
+
+    await execAsync(`git pull`); // Ensure we have the latest changes
+
+    const namespaceDir = path.join(repoDir, 'applications', namespace);
+    if (!fs.existsSync(namespaceDir)) {
+      fs.mkdirSync(namespaceDir, { recursive: true });
+    }
+
+    for (const filePath of filePaths) {
+      const fileName = path.basename(filePath);
+      const destinationPath = path.join(namespaceDir, fileName);
+      fs.copyFileSync(filePath, destinationPath);
+
+      await execAsync(`git add ${destinationPath}`);
+    }
+
+    if (!fs.existsSync(argoAppsDir)) {
+      fs.mkdirSync(argoAppsDir, { recursive: true });
+    }
+
+    const argoAppFilePath = path.join(argoAppsDir, `${namespace}-test-app.yaml`);
+    const argoAppContent = generateArgoCDApplication(namespace, path.basename(filePaths[0]));
+    fs.writeFileSync(argoAppFilePath, argoAppContent);
+
+    await execAsync(`git add ${argoAppFilePath}`);
+
+    if (!fs.existsSync(argoProjectsDir)) {
+      fs.mkdirSync(argoProjectsDir, { recursive: true });
+    }
+
+    const argoProjectFilePath = path.join(argoProjectsDir, `test-${namespace}-project.yaml`);
+    const argoProjectContent = generateArgoCDProject(namespace);
+    fs.writeFileSync(argoProjectFilePath, argoProjectContent);
+
+    await execAsync(`git add ${argoProjectFilePath}`);
+    
+    const commitMessage = `Apply files and ArgoCD Application and Project for namespace: ${namespace}`;
+    await execAsync(`git commit -m "${commitMessage}"`);
+    await execAsync('git push');
+    await execAsync(`kubectl apply -f ${argoProjectFilePath}`);
+    process.chdir('..');
+   
+  } catch (error) {
+    process.chdir('..');
+    throw new Error(`An error occurred during git push: ${error.message}`);
+  }
+};
+exports.testPush = async (req, res) => {
+  const { filePaths, name, description, bundles,namespace } = req.body;
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ msg: 'No token provided' });
+  }
+
+  if (!filePaths || !namespace) {
+    return res.status(400).send('filePaths and namespace are required');
+  }
+
+  if (!Array.isArray(filePaths) || filePaths.length === 0) {
+    return res.status(400).send('filePaths should be a non-empty array');
+  }
+  const sanitizedNamespace = namespace
+  .toLowerCase()
+  .replace(/[^a-z0-9-]/g, "-")
+  .replace(/^-+|-+$/g, "");
+  await createNamespace(sanitizedNamespace);
+  try {
+    const decoded = jwt.verify(token, config.get('secretOrKey'));
+    const userId = decoded.id;
+
+    try {
+      const result = await pushToBitbucket(sanitizedNamespace, filePaths);
+
+      // Save the deployment information with status 'passed'
+      const deployment = new Deployment({
+        name,
+        description,
+        bundle: bundles,
+        user: userId,
+        status: "failed",
+        namespace: sanitizedNamespace,
+      });
+      await deployment.save();
+
+      // Update the user document to include this deployment
+      await User.findByIdAndUpdate(userId, {
+        $push: { myDeployments: deployment._id }
+      });
+
+      res.status(200).send(result);
+    } catch (error) {
+      // Save the deployment information with status 'failed'
+      const deployment = new Deployment({
+        name,
+        description,
+        bundle: bundles,
+        user: userId,
+        status: "failed",
+        namespace: sanitizedNamespace,
+      });
+      await deployment.save();
+
+      // Update the user document to include this deployment
+      await User.findByIdAndUpdate(userId, {
+        $push: { myDeployments: deployment._id }
+      });
+
+      console.error(error);
+      res.status(500).json({ message: `An error occurred during git push: ${error.message}` });
+    }
+  } catch (error) {
+    res.status(500).json({ errors: error.message });
+    console.error(error);
+  }
+};
 // Function to generate the Kubernetes Pod YAML file
 const generatePodYaml = (
   podName,
@@ -874,7 +1055,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: idp-poc-staging-ingress
-  namespace: ${rules[0].sanitizedNamespace} 
+  namespace: ${rules[0].namespace} 
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
