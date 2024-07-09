@@ -37,10 +37,12 @@ const userSchema = mongoose.Schema({
       ref: "project",
     },
   ],
-  myDeployments: [{
-    type: ObjectId,
-    ref: 'Deployment'
-  }],
+  myDeployments: [
+    {
+      type: ObjectId,
+      ref: "Deployment",
+    },
+  ],
   myRepo: [
     {
       type: ObjectId,
@@ -66,6 +68,7 @@ const userSchema = mongoose.Schema({
     type: String,
     default: "",
   },
+  otp: { type: String, default: null },
 });
 
 module.exports = User = mongoose.model("user", userSchema);

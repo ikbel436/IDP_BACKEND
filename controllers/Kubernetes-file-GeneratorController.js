@@ -643,18 +643,11 @@ exports.generateDataBaseFile = async (req, res) => {
   }
 };
 
-const generateSpringBootDeployment = (
-  serviceName,
-  port,
-  image,
-  envVariables,
-  namespace,
-  imagePullSecretName
-) => {
+const generateSpringBootDeployment = (serviceName, port, image, envVariables, namespace, imagePullSecretName) => {
   const sanitizedNamespace = namespace
     .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/^-+|-+$/g, '');
 
   const serviceYaml = `
 apiVersion: v1
@@ -672,38 +665,25 @@ spec:
 ---
 `;
 
-  let envSection = "";
-  if (envVariables && envVariables.length > 0) {
-    envSection = `
+  const envSection = envVariables && envVariables.length > 0 ? `
         env:
-${envVariables
-      .map(
-        (envVar) => `
-        - name: ${envVar.name}
-          ${
-            envVar.valueFrom
-              ? `
-          valueFrom:
-            configMapKeyRef:
-              name: ${envVar.valueFrom.configMapName}
-              key: ${envVar.valueFrom.key}
-          `
-              : `
-          value: "${envVar.value}"
-          `
-          }
-      `
-      )
-      .join("\n")}
-`;
-  }
+${envVariables.map(envVar => `
+          - name: ${envVar.name}
+            ${envVar.valueFrom ? `
+            valueFrom:
+              configMapKeyRef:
+                name: ${envVar.valueFrom.configMapName}
+                key: ${envVar.valueFrom.key}
+            ` : `
+            value: "${envVar.value}"
+            `}
+`).join('')}
+      ` : '';
 
-  const imagePullSecretsSection = imagePullSecretName
-    ? `
+  const imagePullSecretsSection = imagePullSecretName ? `
       imagePullSecrets:
       - name: ${imagePullSecretName}
-`
-    : "";
+  ` : '';
 
   const deploymentYaml = `
 apiVersion: apps/v1
@@ -726,13 +706,12 @@ spec:
         image: ${image}
         ports:
         - containerPort: ${port}
-${imagePullSecretsSection}
-${envSection}
+        ${imagePullSecretsSection}
+        ${envSection}
 `;
 
   return serviceYaml + deploymentYaml;
 };
-
 
 
 

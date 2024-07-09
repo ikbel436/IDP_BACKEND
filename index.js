@@ -1,28 +1,30 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
-const gitlabGenRoutes = require('./routes/GitlabGenRoute');
-const GitLabRoute = require('./routes/gitlabRoute');
-const TerraformRoutes = require('./routes/terraformRoute');
-const AuthRoutes = require('./routes/authRoute');
-const connectDB = require('./config/DBConnect');
+const gitlabGenRoutes = require("./routes/GitlabGenRoute");
+const GitLabRoute = require("./routes/gitlabRoute");
+const TerraformRoutes = require("./routes/terraformRoute");
+const AuthRoutes = require("./routes/authRoute");
+const connectDB = require("./config/DBConnect");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const projectRouter = require("./routes/projectRoutes");
 const K8Route = require("./routes/K8Route");
-const BitbucketRoute = require('./routes/BitbucketRoute');
-const azureResourcesRoute = require('./routes/AzureResourcesRoute')
+const BitbucketRoute = require("./routes/BitbucketRoute");
+const azureResourcesRoute = require("./routes/AzureResourcesRoute");
 const OAuthRoute = require("./routes/OAuthRoute");
 const { specs, swaggerUi } = require("./swagger");
-const ReposRoute = require('./routes/ReposRoute');
-const cloudServiceRoutes = require('./routes/CloudServiceRoutes');
-const bundleRoutes = require('./routes/bundleRoutes');
-const workflow = require('./routes/workflowRoutes');
-const actionRoute = require('./routes/actionRoute');
-const deploymentRoutes = require('./routes/DeploymentRoute');
+const ReposRoute = require("./routes/ReposRoute");
+const cloudServiceRoutes = require("./routes/CloudServiceRoutes");
+const bundleRoutes = require("./routes/bundleRoutes");
+const workflow = require("./routes/workflowRoutes");
+const actionRoute = require("./routes/actionRoute");
+const deploymentRoutes = require("./routes/DeploymentRoute");
+const otpRoute = require("./routes/otpRoute");
+
 const corsOptions = {
-  origin: 'http://localhost:4200',
-  credentials: true
+  origin: "http://localhost:4200",
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
@@ -39,15 +41,15 @@ app.use("", projectRouter);
 app.use("/k8", K8Route);
 app.use("/connect", BitbucketRoute);
 app.use("/OAuth", OAuthRoute);
-app.use('/azure', azureResourcesRoute);
-app.use('/gitlab', GitLabRoute);
-app.use('/Repos', ReposRoute)
-app.use('/api/cloudservices', cloudServiceRoutes);
-app.use('/Bundle', bundleRoutes);
-app.use('/pipCI', workflow);
-app.use('/api/actions', actionRoute);
-app.use('/depl', deploymentRoutes)
-
+app.use("/azure", azureResourcesRoute);
+app.use("/gitlab", GitLabRoute);
+app.use("/Repos", ReposRoute);
+app.use("/api/cloudservices", cloudServiceRoutes);
+app.use("/Bundle", bundleRoutes);
+app.use("/pipCI", workflow);
+app.use("/api/actions", actionRoute);
+app.use("/depl", deploymentRoutes);
+app.use("/otp", otpRoute);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
