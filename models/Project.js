@@ -14,6 +14,12 @@ const projectSchema = mongoose.Schema({
   DockerImage : [], 
   Status : String,
   SonarQube : String,
+  myprojectDepl: [
+    {
+      type: ObjectId,
+      ref: "projectDepl",
+    },
+  ],
 
 });
 

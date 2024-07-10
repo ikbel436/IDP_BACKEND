@@ -1,0 +1,41 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: aze-service
+  namespace: angular---nodejs-deployement
+spec:
+  ports:
+  - port: 7894
+    targetPort: 7894
+  selector:
+    app: aze
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aze
+  namespace: angular---nodejs-deployement
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aze
+  template:
+    metadata:
+      labels:
+        app: aze
+    spec:
+      containers:
+      - name: aze
+        image: mongo:latest
+        env:
+
+          - name: aze
+            
+            value: "aze"
+            
+
+        ports:
+        - containerPort: 7894

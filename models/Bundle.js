@@ -12,7 +12,9 @@ const bundleSchema = mongoose.Schema({
       ref: "project",
     },
   ],
-
+  myDBconfig: [{ type: ObjectId, ref: "databaseConfig" }],
 });
+
+
 
 module.exports = Bundle = mongoose.model("bundle", bundleSchema);
