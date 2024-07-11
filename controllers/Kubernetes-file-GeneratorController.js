@@ -357,7 +357,7 @@ exports.generateDataBaseFile = async (req, res) => {
       serviceName: serviceName,
       port: port,
       envVariables: envVariables.map((variable) => ({
-        key: variable.key,
+        key: variable.name,
         value: variable.value,
       })),
     });
@@ -370,16 +370,16 @@ exports.generateDataBaseFile = async (req, res) => {
       description: `Database configuration for ${dbName}`,
       createdAt: new Date(),
       Projects: [],
-      myDBconfig: [newDbConfig._id], // Reference the database configuration document
+      myDBconfig: [newDbConfig._id], 
     });
 
-    await newBundle.save(); // Save the new Bundle document to the database
+    await newBundle.save(); 
 
-    // Apply the generated deployment file using kubectl
+   
     res.status(201).json({
       msg: "Database deployment file generated and applied, and database configuration saved.",
       deploymentFilePath,
-      bundleId: newBundle._id, // Optionally include the ID of the newly created Bundle
+      bundleId: newBundle._id, 
     });
   } catch (error) {
     res.status(500).json({ errors: error.message });
