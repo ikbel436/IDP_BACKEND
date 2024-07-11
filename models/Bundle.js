@@ -12,7 +12,7 @@ const bundleSchema = mongoose.Schema({
       ref: "project",
     },
   ],
-  myDBconfig: [{ type: ObjectId, ref: "databaseConfig" }],
+  myDBconfig: { type: ObjectId, ref: "databaseConfig" },
 });
 
 

@@ -10,7 +10,7 @@ exports.getBundleById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const bundle = await Bundle.findById(id);
+    const bundle = await Bundle.findById(id).populate('myDBconfig');
 
     if (!bundle) {
       return res.status(404).json({ message: "Bundle not found" });
@@ -22,6 +22,7 @@ exports.getBundleById = async (req, res) => {
     res.status(500).json({ message: "Error retrieving Bundle." });
   }
 };
+
 
 exports.createBundle = async (req, res) => {
   try {
@@ -125,3 +126,4 @@ exports.deleteBundle = async (req, res) => {
     res.status(500).json({ message: "Error deleting Bundle." });
   }
 };
+

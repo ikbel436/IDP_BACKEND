@@ -323,8 +323,7 @@ ${envVariables
 };
 
 exports.generateDataBaseFile = async (req, res) => {
-  const { dbType, serviceName, dbName, port, envVariables, namespace } =
-    req.body;
+  const { dbType, serviceName, dbName, port, envVariables, namespace, bundleId } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -345,13 +344,9 @@ exports.generateDataBaseFile = async (req, res) => {
       namespace
     );
     const k8sDir = generateK8sDir();
-    const deploymentFilePath = path.join(
-      k8sDir,
-      `${serviceName}-deployment.yaml`
-    );
+    const deploymentFilePath = path.join(k8sDir,`${serviceName}-deployment.yaml`);
     fs.writeFileSync(deploymentFilePath, deploymentYaml);
 
-    // Adjusted part of the generateDataBaseFile function
     const newDbConfig = new DatabaseConfig({
       type: dbType,
       serviceName: serviceName,
@@ -362,30 +357,49 @@ exports.generateDataBaseFile = async (req, res) => {
       })),
     });
 
-    console.log(newDbConfig);
     await newDbConfig.save();
 
-    const newBundle = new Bundle({
-      name: serviceName,
-      description: `Database configuration for ${dbName}`,
-      createdAt: new Date(),
-      Projects: [],
-      myDBconfig: [newDbConfig._id], 
-    });
+    const existingBundle = await Bundle.findById(bundleId); 
 
-    await newBundle.save(); 
+    if (!existingBundle) {
+      return res.status(404).json({ msg: "Bundle not found" });
+    }
 
-   
-    res.status(201).json({
-      msg: "Database deployment file generated and applied, and database configuration saved.",
+    existingBundle.myDBconfig = [newDbConfig._id]; 
+    await existingBundle.save();
+
+    res.status(200).json({
+      msg: "Database deployment file generated and applied, and database configuration updated.",
       deploymentFilePath,
-      bundleId: newBundle._id, 
+      bundleId: existingBundle._id,
     });
   } catch (error) {
     res.status(500).json({ errors: error.message });
     console.error(error);
   }
 };
+
+
+
+
+
+// Function to add a database configuration to a bundle
+async function addDatabaseConfigToBundle(bundleId, databaseConfigId) {
+  try {
+    const bundle = await Bundle.findById(bundleId);
+    if (!bundle) throw new Error("Bundle not found");
+
+    // Assuming databaseConfigId is the ObjectId of the DatabaseConfig instance
+    bundle.myDBconfig.push(databaseConfigId);
+    await bundle.save();
+
+    return bundle;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
 
 const generateSpringBootDeployment = (
   serviceName,
