@@ -1,0 +1,36 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: full-stack-deployment
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: mysql
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: full-stack-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        env:
+
+        ports:
+        - containerPort: 8080

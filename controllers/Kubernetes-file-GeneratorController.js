@@ -11,6 +11,7 @@ const execAsync = util.promisify(exec);
 require("dotenv").config();
 const Bundle = require("../models/Bundle");
 const DatabaseConfig = require("../models/Database");
+const ProjectDeploymentConfig = require("../models/ProjectDeployment");
 
 const generateArgoCDProject = (namespace) => {
   return `
@@ -522,6 +523,7 @@ exports.generateDeploymentFile = async (req, res) => {
     dockerPassword,
     dockerEmail,
     imagePullSecretName,
+    bundleId,
   } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
@@ -555,7 +557,7 @@ exports.generateDeploymentFile = async (req, res) => {
       image,
       envVariables,
       namespace,
-      imagePullSecretName
+      imagePullSecretName,
     );
     const k8sDir = generateK8sDir();
     const deploymentFilePath = path.join(
@@ -594,10 +596,36 @@ exports.generateDeploymentFile = async (req, res) => {
       fs.writeFileSync(ingressFilePath, ingressYaml);
     }
 
+    const newProjectDeployementData = new ProjectDeploymentConfig ({
+      serviceName: serviceName,
+      port: port,
+      image: image,
+      envVariables: envVariables.map((variable) => ({
+        key: variable.name,
+        value: variable.value,
+      })),
+      expose: expose,
+      namespace: namespace,
+    });
+    
+    await newProjectDeployementData.save();
+    
+
+    const existingBundle = await Bundle.findById(bundleId);
+
+    if (!existingBundle) {
+      return res.status(404).json({ msg: "Bundle not found" });
+    }
+
+    existingBundle.projectDepl.push(newProjectDeployementData._id);
+    await existingBundle.save();
+
     res.status(201).json({
       msg: "Deployment files generated and applied",
       deploymentFilePath,
       ingressFilePath,
+      bundleId: existingBundle._id,
+
     });
   } catch (error) {
     res.status(500).json({ errors: error.message });

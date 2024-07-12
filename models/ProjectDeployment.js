@@ -1,23 +1,22 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema.Types;
 mongoose.set("strictQuery", false);
+const { Schema } = mongoose;
+
+
+const EnvVariableSchema = new Schema({
+  key: String,
+  value: String,
+});
 
 const projectDeplschema = mongoose.Schema({
+  image: String,
+  expose: Boolean,
   Resigtrytype: String,
   serviceName: String,
   port: Number,
-  Key: [
-    {
-      type: String,
-      default: "",
-    },
-  ],
-  Value: [
-    {
-      type: String,
-      default: "",
-    },
-  ],
+  envVariables: [EnvVariableSchema], 
+
 });
 
-module.exports = Bundle = mongoose.model("projectDepl", projectDeplschema);
+module.exports = ProjectDeploymentConfig = mongoose.model("projectDepl", projectDeplschema);
