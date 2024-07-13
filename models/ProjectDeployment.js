@@ -14,6 +14,7 @@ const projectDeplschema = mongoose.Schema({
   expose: Boolean,
   Resigtrytype: String,
   serviceName: String,
+  host:String,
   port: Number,
   envVariables: [EnvVariableSchema], 
 

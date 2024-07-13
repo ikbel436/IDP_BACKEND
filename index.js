@@ -21,7 +21,7 @@ const workflow = require("./routes/workflowRoutes");
 const actionRoute = require("./routes/actionRoute");
 const deploymentRoutes = require("./routes/DeploymentRoute");
 const otpRoute = require("./routes/otpRoute");
-
+const projectDepl = require("./routes/projectDeplRoutes");
 const corsOptions = {
   origin: "http://localhost:4200",
   credentials: true,
@@ -50,7 +50,7 @@ app.use("/pipCI", workflow);
 app.use("/api/actions", actionRoute);
 app.use("/depl", deploymentRoutes);
 app.use("/otp", otpRoute);
-
+app.use("/projectDepl",projectDepl);
 // Start the server
 const PORT = process.env.PORT || 3000;
 connectDB();

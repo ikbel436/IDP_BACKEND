@@ -160,7 +160,7 @@ exports.deleteProject = [
 //Get User with id
 exports.retreivebyId = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findById(req.params.id).populate('myprojectDepl');;
     res.status(200).json(project);
   } catch (err) {
     return res.status(500).json({ msg: err.message });

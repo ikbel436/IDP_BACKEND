@@ -524,6 +524,7 @@ exports.generateDeploymentFile = async (req, res) => {
     dockerEmail,
     imagePullSecretName,
     bundleId,
+    projectId
   } = req.body;
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
@@ -557,7 +558,7 @@ exports.generateDeploymentFile = async (req, res) => {
       image,
       envVariables,
       namespace,
-      imagePullSecretName,
+      imagePullSecretName
     );
     const k8sDir = generateK8sDir();
     const deploymentFilePath = path.join(
@@ -596,43 +597,63 @@ exports.generateDeploymentFile = async (req, res) => {
       fs.writeFileSync(ingressFilePath, ingressYaml);
     }
 
-    const newProjectDeployementData = new ProjectDeploymentConfig ({
-      serviceName: serviceName,
-      port: port,
-      image: image,
-      envVariables: envVariables.map((variable) => ({
-        key: variable.name,
-        value: variable.value,
-      })),
-      expose: expose,
-      namespace: namespace,
-    });
-    
-    await newProjectDeployementData.save();
-    
-
-    const existingBundle = await Bundle.findById(bundleId);
-
-    if (!existingBundle) {
-      return res.status(404).json({ msg: "Bundle not found" });
+    const existingProject = await Project.findById(projectId).populate('myprojectDepl');
+    if (!existingProject) {
+      return res.status(404).json({ msg: "Project not found" });
     }
 
-    existingBundle.projectDepl.push(newProjectDeployementData._id);
-    await existingBundle.save();
+    let projectDeploymentData;
+    if (existingProject.myprojectDepl && existingProject.myprojectDepl.length > 0) {
+      // Update the existing deployment
+      const deploymentId = existingProject.myprojectDepl[0]._id;
+      projectDeploymentData = await ProjectDeploymentConfig.findByIdAndUpdate(
+        deploymentId,
+        {
+          serviceName,
+          port,
+          image,
+          envVariables: envVariables.map((variable) => ({
+            key: variable.name,
+            value: variable.value,
+          })),
+          expose,
+          host,
+          namespace,
+        },
+        { new: true }
+      );
+    } else {
+      // Create new deployment
+      projectDeploymentData = new ProjectDeploymentConfig({
+        serviceName,
+        port,
+        image,
+        envVariables: envVariables.map((variable) => ({
+          key: variable.name,
+          value: variable.value,
+        })),
+        expose,
+        host,
+        namespace,
+      });
+      await projectDeploymentData.save();
+
+      existingProject.myprojectDepl.push(projectDeploymentData._id);
+      await existingProject.save();
+    }
 
     res.status(201).json({
-      msg: "Deployment files generated and applied",
+      msg: existingProject.myprojectDepl.length > 0 ? "Deployment files updated and applied" : "Deployment files generated and applied",
       deploymentFilePath,
       ingressFilePath,
-      bundleId: existingBundle._id,
-
+      projectId: existingProject._id,
+      bundleId,
     });
   } catch (error) {
     res.status(500).json({ errors: error.message });
     console.log(error);
   }
 };
-
 const generateIngress = (rules) => {
   const rulesYaml = rules
     .map(
