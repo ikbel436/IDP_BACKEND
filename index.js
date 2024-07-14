@@ -21,6 +21,8 @@ const workflow = require("./routes/workflowRoutes");
 const actionRoute = require("./routes/actionRoute");
 const deploymentRoutes = require("./routes/DeploymentRoute");
 const otpRoute = require("./routes/otpRoute");
+const axios = require("axios");
+
 const projectDepl = require("./routes/projectDeplRoutes");
 const corsOptions = {
   origin: "http://localhost:4200",
@@ -51,6 +53,16 @@ app.use("/api/actions", actionRoute);
 app.use("/depl", deploymentRoutes);
 app.use("/otp", otpRoute);
 app.use("/projectDepl",projectDepl);
+app.get('/api/docker-tags/:namespace/:repository', async (req, res) => {
+  const { namespace, repository } = req.params;
+  try {
+    const response = await axios.get(`https://hub.docker.com/v2/repositories/${namespace}/${repository}/tags`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching Docker image tags:', error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Something went wrong; please try again later.' });
+  }
+});
 // Start the server
 const PORT = process.env.PORT || 3000;
 connectDB();

@@ -80,7 +80,7 @@ const pushToBitbucket = async (namespace, filePaths) => {
 
     process.chdir(repoDir);
 
-    await execAsync(`git pull`); // Ensure we have the latest changes
+    await execAsync(`git pull`); 
 
     const namespaceDir = path.join(repoDir, "applications", namespace);
     if (!fs.existsSync(namespaceDir)) {
@@ -94,13 +94,16 @@ const pushToBitbucket = async (namespace, filePaths) => {
 
       await execAsync(`git add ${destinationPath}`);
     }
-
+    const argoAppNamespaceDir = path.join(argoAppsDir, namespace);
+    if (!fs.existsSync(argoAppNamespaceDir)) {
+      fs.mkdirSync(argoAppNamespaceDir, { recursive: true });
+    }
     if (!fs.existsSync(argoAppsDir)) {
       fs.mkdirSync(argoAppsDir, { recursive: true });
     }
 
     const argoAppFilePath = path.join(
-      argoAppsDir,
+      argoAppNamespaceDir,
       `${namespace}-test-app.yaml`
     );
     const argoAppContent = generateArgoCDApplication(
@@ -116,7 +119,7 @@ const pushToBitbucket = async (namespace, filePaths) => {
     }
 
     const argoProjectFilePath = path.join(
-      argoProjectsDir,
+      argoAppNamespaceDir,
       `test-${namespace}-project.yaml`
     );
     const argoProjectContent = generateArgoCDProject(namespace);
@@ -515,6 +518,7 @@ exports.generateDeploymentFile = async (req, res) => {
     serviceName,
     port,
     image,
+    dockerTag,
     envVariables,
     expose,
     host,
@@ -551,11 +555,11 @@ exports.generateDeploymentFile = async (req, res) => {
         namespace
       );
     }
-
+    const fullImage = `${image}:${dockerTag}`;
     const deploymentYaml = generateSpringBootDeployment(
       serviceName,
       port,
-      image,
+      fullImage,
       envVariables,
       namespace,
       imagePullSecretName
@@ -611,7 +615,7 @@ exports.generateDeploymentFile = async (req, res) => {
         {
           serviceName,
           port,
-          image,
+          image: fullImage,
           envVariables: envVariables.map((variable) => ({
             key: variable.name,
             value: variable.value,
@@ -627,7 +631,7 @@ exports.generateDeploymentFile = async (req, res) => {
       projectDeploymentData = new ProjectDeploymentConfig({
         serviceName,
         port,
-        image,
+        image: fullImage,
         envVariables: envVariables.map((variable) => ({
           key: variable.name,
           value: variable.value,
@@ -691,6 +695,7 @@ ${rulesYaml}
 `;
 };
 
+
 const addRuleToExistingIngress = (
   existingIngress,
   serviceName,
@@ -711,11 +716,28 @@ const addRuleToExistingIngress = (
                 number: ${port}
   `;
 
-  const ingressWithNamespace = existingIngress.replace(
-    /namespace: .+/,
-    `namespace: ${namespace}`
-  );
 
-  const splitIngress = ingressWithNamespace.split("rules:");
-  return `${splitIngress[0]}rules:${splitIngress[1]}${newRule}`;
+  const ruleRegex = new RegExp(`- host: ([\\w.-]+)\\s+http:\\s+paths:\\s+- path: /\\s+pathType: Prefix\\s+backend:\\s+service:\\s+name: ${serviceName}-service\\s+port:\\s+number: \\d+`, 'g');
+  const matches = [...existingIngress.matchAll(ruleRegex)];
+
+  if (matches.length > 0) {
+ 
+    let updatedIngress = existingIngress;
+    matches.forEach(match => {
+      const existingHost = match[1];
+      if (existingHost !== `${host}.idp.insparkconnect.com` || existingIngress.includes(`port: ${port}`)) {
+        updatedIngress = updatedIngress.replace(match[0], newRule.trim());
+      }
+    });
+    return updatedIngress;
+  } else {
+ 
+    const ingressWithNamespace = existingIngress.replace(
+      /namespace: .+/,
+      `namespace: ${namespace}`
+    );
+
+    const splitIngress = ingressWithNamespace.split("rules:");
+    return `${splitIngress[0]}rules:${splitIngress[1]}${newRule}`;
+  }
 };
