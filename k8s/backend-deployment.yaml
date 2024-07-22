@@ -39,11 +39,7 @@ spec:
                 configMapKeyRef:
                   name: backend-config
                   key: AWS_REGION
-            - name: secretOrKey
-              valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: secretOrKey
+
 
 
 ---
