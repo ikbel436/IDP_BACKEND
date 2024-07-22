@@ -129,10 +129,223 @@ const getAllDeploymentsForAdmin = async (req, res) => {
       res.status(500).json({ errors: error.message });
     }
   };
-  
+  const getStartDate = (timeframe) => {
+    const now = new Date();
+    console.log('Current date and time:', now);
+    switch (timeframe) {
+        case 'daily':
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            console.log('Start of the day:', startOfDay);
+            return startOfDay;
+        case 'weekly':
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay()); // Start of the current week (Sunday)
+            startOfWeek.setHours(0, 0, 0, 0); // Reset time to start of the day
+            console.log('Start of the week:', startOfWeek);
+            return startOfWeek;
+        case 'monthly':
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // Start of the current month
+            console.log('Start of the month:', startOfMonth);
+            return startOfMonth;
+        default:
+            const defaultDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            console.log('Default date:', defaultDate);
+            return defaultDate;
+    }
+};
+
+const deploymentStat = async (req, res) => {
+    try {
+        const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
+        const startDate = getStartDate(timeframe);
+
+        const deployments = await Deployment.find({
+            createdAt: { $gte: startDate }
+        }).sort({ createdAt: 1 });
+
+        const totalDeployments = deployments.length;
+
+        const labels = [];
+        const deploymentCounts = [];
+        let failedDeployments = 0;
+
+        deployments.forEach(deployment => {
+            const date = deployment.createdAt.toISOString().split('T')[0];
+            if (!labels.includes(date)) {
+                labels.push(date);
+                deploymentCounts.push(1);
+            } else {
+                const index = labels.indexOf(date);
+                deploymentCounts[index]++;
+            }
+
+            // Count failed deployments
+            if (deployment.status === 'failed') {
+                failedDeployments++;
+            }
+        });
+
+        // Here you can implement any custom logic based on the `Deployment` model
+        // For example, summarizing based on the `bundle` attribute
+        const bundleSummary = deployments.reduce((summary, deployment) => {
+            deployment.bundle.forEach(bundleId => {
+                if (!summary[bundleId]) {
+                    summary[bundleId] = 0;
+                }
+                summary[bundleId]++;
+            });
+            return summary;
+        }, {});
+
+        // Calculating additional stats dynamically
+        const fixedDeployments = deployments.filter(d => d.status === 'passed').length;
+        const wontFixDeployments = Math.floor(totalDeployments * 0.05); // Placeholder logic
+        const reOpenedDeployments = Math.floor(totalDeployments * 0.2); // Placeholder logic
+        const needsTriageDeployments = Math.floor(totalDeployments * 0.15); // Placeholder logic
+
+        const overview = {
+            new: totalDeployments,
+            closed: failedDeployments, // Updated to show failed deployments
+            fixed: fixedDeployments,
+            wontFix: wontFixDeployments,
+            reOpened: reOpenedDeployments,
+            needsTriage: needsTriageDeployments,
+            bundleSummary // Add your custom logic output here
+        };
+
+        res.status(200).json({ totalDeployments, deployments: deploymentCounts, labels, overview });
+    } catch (error) {
+        console.error('Error fetching deployment statistics:', error);
+        res.status(500).json({ error: 'Failed to fetch deployment statistics' });
+    }
+};
+const deploymentSuccessRate = async (req, res) => {
+  try {
+      const { timeframe } = req.query;
+      const startDate = getStartDate(timeframe);
+
+      const deployments = await Deployment.find({
+          createdAt: { $gte: startDate }
+      }).sort({ createdAt: 1 });
+
+      const namespaces = {};
+
+      deployments.forEach(deployment => {
+          if (!namespaces[deployment.namespace]) {
+              namespaces[deployment.namespace] = { total: 0, passed: 0, failed: 0 };
+          }
+          namespaces[deployment.namespace].total++;
+          if (deployment.status === 'passed') {
+              namespaces[deployment.namespace].passed++;
+          } else if (deployment.status === 'failed') {
+              namespaces[deployment.namespace].failed++;
+          }
+      });
+
+      const namespaceStats = Object.keys(namespaces).map(namespace => {
+          const total = namespaces[namespace].total;
+          const passed = namespaces[namespace].passed;
+          const successRate = (passed / total) * 100;
+          return {
+              namespace,
+              totalDeployments: total,
+              successRate: successRate.toFixed(2), // keeping two decimal points
+              failedDeployments: namespaces[namespace].failed
+          };
+      });
+
+      res.status(200).json({ namespaceStats });
+  } catch (error) {
+      console.error('Error fetching deployment statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch deployment statistics' });
+  }
+};
+
+// const deploymentFrequency = async (req, res) => {
+//   try {
+//     const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
+//     const startDate = getStartDate(timeframe);
+
+//     // Find users and their deployment counts within the timeframe
+//     const users = await User.find().populate({
+//       path: 'myDeployments',
+//       match: { createdAt: { $gte: startDate } },
+//       select: 'createdAt'
+//     });
+
+//     const totalUsers = users.length;
+//     const totalDeployments = users.reduce((acc, user) => acc + user.myDeployments.length, 0);
+//     const avgDeploymentsPerUser = totalUsers ? (totalDeployments / totalUsers).toFixed(2) : 0;
+
+//     res.status(200).json({ totalUsers, totalDeployments, avgDeploymentsPerUser });
+//   } catch (error) {
+//     console.error('Error fetching deployment frequency statistics:', error);
+//     res.status(500).json({ error: 'Failed to fetch deployment frequency statistics' });
+//   }
+// };
+const deploymentFrequency = async (req, res) => {
+  try {
+    const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
+    const startDate = getStartDate(timeframe);
+
+    // Aggregation pipeline to get the deployment frequency and details
+    const userDeploymentDetails = await User.aggregate([
+      {
+        $lookup: {
+          from: 'deployments',
+          localField: 'myDeployments',
+          foreignField: '_id',
+          as: 'deployments'
+        }
+      },
+      {
+        $match: {
+          'deployments.createdAt': { $gte: startDate }
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          totalDeployments: { $size: '$deployments' },
+          totalBundles: {
+            $size: {
+              $reduce: {
+                input: '$deployments.bundle',
+                initialValue: [],
+                in: { $concatArrays: ['$$value', '$$this'] }
+              }
+            }
+          },
+          totalProjects: {
+            $size: {
+              $reduce: {
+                input: '$deployments.bundle',
+                initialValue: [],
+                in: { $concatArrays: ['$$value', '$$this.Projects'] }
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    const totalUsers = userDeploymentDetails.length;
+    const totalDeployments = userDeploymentDetails.reduce((acc, user) => acc + user.totalDeployments, 0);
+    const avgDeploymentsPerUser = totalUsers ? (totalDeployments / totalUsers).toFixed(2) : 0;
+
+    res.status(200).json({ totalUsers, totalDeployments, avgDeploymentsPerUser, userDeploymentDetails });
+  } catch (error) {
+    console.error('Error fetching deployment frequency statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch deployment frequency statistics' });
+  }
+};
+
 module.exports = {
   verifyToken,
   retreive ,
   allDeployments,
-  getDeployments
+  getDeployments,
+  deploymentStat,
+  deploymentSuccessRate,
+  deploymentFrequency
 };

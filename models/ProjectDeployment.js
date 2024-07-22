@@ -12,8 +12,9 @@ const EnvVariableSchema = new Schema({
 const projectDeplschema = mongoose.Schema({
   image: String,
   expose: Boolean,
-  Resigtrytype: String,
+  registryType: String,
   serviceName: String,
+  privacy: String,
   host:String,
   port: Number,
   envVariables: [EnvVariableSchema], 
