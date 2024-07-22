@@ -1,7 +1,4 @@
 node_modules
-package-lock.json
-config/
-.env/
-.env
+package-lock.jso
 uploads/
 .terraform/
