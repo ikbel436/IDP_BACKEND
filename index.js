@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
-const gitlabGenRoutes = require("./routes/GitlabGenRoute");
+// const gitlabGenRoutes = require("./routes/GitlabGenRoute");
 const GitLabRoute = require("./routes/gitlabRoute");
 const TerraformRoutes = require("./routes/terraformRoute");
 const AuthRoutes = require("./routes/authRoute");
@@ -25,7 +25,7 @@ const axios = require("axios");
 
 const projectDepl = require("./routes/projectDeplRoutes");
 const corsOptions = {
-  origin: "http://localhost:4200",
+  origin: "https://frontend.idp.insparkconnect.com",
   credentials: true,
 };
 
@@ -37,7 +37,7 @@ app.use(express.json());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 // Use the routes
 app.use("/terraform", TerraformRoutes);
-app.use("/gitlab", gitlabGenRoutes);
+// app.use("/gitlab", gitlabGenRoutes);
 app.use("/auth", AuthRoutes);
 app.use("", projectRouter);
 app.use("/k8", K8Route);
