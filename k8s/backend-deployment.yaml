@@ -24,24 +24,6 @@ spec:
                 configMapKeyRef:
                   name: backend-config
                   key: MONGO_URI
-            - name: BITBUCKET_USERNAME
-              valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: BITBUCKET_USERNAME
-            - name: BITBUCKET_APP_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: BITBUCKET_APP_PASSWORD
-            - name: AWS_REGION
-              valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: AWS_REGION
-
-
-
 ---
 apiVersion: v1
 kind: Service
