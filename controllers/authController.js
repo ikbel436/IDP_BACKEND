@@ -10,7 +10,6 @@ const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
 const path = require("path");
-//const sendEmail = require("../config/sendEmail.js");
 //Password Crypt
 const bcrypt = require("bcryptjs");
 const cloudinary = require("cloudinary").v2;
@@ -19,16 +18,35 @@ cloudinary.config({
   api_key: "234343386118662",
   api_secret: "3sKIhiWIOna-LmiAK7XO2_v5Kbg",
 });
+
+
+
 // Login User
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
+    const user = await User.findOne({ email }).lean();
+    if (!user) {
+      return res.status(404).json({ msg: 'Email or password incorrect' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
+    if (!isMatch) {
+      return res.status(401).json({ msg: 'Email or password incorrect' });
+    }
+
+    // Ensure trustedDevices is an array
+    const trustedDevices = user.trustedDevices || [];
+    console.log('Trusted Devices:', trustedDevices);
+
+    const now = new Date();
+    // Check for non-expired trusted devices
+    const trustedDevice = trustedDevices.find(device => new Date(device.expiresAt) > now);
+    console.log('Non-expired Trusted Device:', trustedDevice);
+
+    if (!trustedDevice) {
+      return res.status(401).json({ msg: 'No trusted device found, please verify your device', untrustedDevice: true });
+    }
 
     const payload = {
       id: user._id,
@@ -41,22 +59,27 @@ exports.login = async (req, res) => {
       codePostal: user.codePostal,
       country: user.country,
       myProjects: user.myProject,
-      myRepos : user.myRepo,
+      myRepos: user.myRepo,
+      deviceId: trustedDevice.deviceId,
+      deviceInfo: trustedDevice.deviceInfo,
     };
 
-    const token = await jwt.sign(payload, secretOrkey);
+    const token = jwt.sign(payload, secretOrkey);
+    res.cookie('jwt', token, { httpOnly: true, secure: true });
     return res.status(200).json({ token: `${token}`, user });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ msg: "Internal server error", error: error.message });
+    console.error('Error in login:', error);
+    return res.status(500).json({ msg: 'Internal server error', error: error.message });
   }
 };
+
+
+
 
 // Register User
 exports.register = async (req, res) => {
   const { name, email, phoneNumber, password, birthDate } = req.body;
-  const role = req.body.Role || 'User';
+  const role = req.body.Role || "User";
   try {
     const searchRes = await User.findOne({ email });
     if (searchRes)
@@ -71,7 +94,8 @@ exports.register = async (req, res) => {
 
     if (
       age < 18 ||
-      (age === 18 && (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
+      (age === 18 &&
+        (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
     ) {
       return res.status(400).json({ msg: "L'âge doit être de 18 ans ou plus" });
     }
@@ -148,9 +172,12 @@ exports.updateUser = async (req, res) => {
 
       if (
         age < 18 ||
-        (age === 18 && (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
+        (age === 18 &&
+          (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
       ) {
-        return res.status(400).json({ msg: "L'âge doit être de 18 ans ou plus" });
+        return res
+          .status(400)
+          .json({ msg: "L'âge doit être de 18 ans ou plus" });
       }
     }
     const updatedUser = await User.findByIdAndUpdate(req.params.id, {
@@ -371,8 +398,6 @@ exports.removeImage = async (req, res) => {
         .status(404)
         .json({ status: "error", message: "User or image not found" });
     }
-
-
 
     await cloudinary.uploader.destroy(user.image);
 

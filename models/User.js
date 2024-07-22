@@ -1,9 +1,21 @@
-const c = require("config");
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema.Types;
 mongoose.set("strictQuery", false);
 
-const userSchema = mongoose.Schema({
+const deviceInfoSchema = new mongoose.Schema({
+  device: String,
+  os: String,
+  browser: String,
+  userAgent: String
+}, { _id: false });
+
+const trustedDeviceSchema = new mongoose.Schema({
+  deviceId: String,
+  expiresAt: Date,
+  deviceInfo: deviceInfoSchema,
+}, { _id: false });
+
+const userSchema = new mongoose.Schema({
   name: String,
   email: String,
   phoneNumber: String,
@@ -18,7 +30,6 @@ const userSchema = mongoose.Schema({
     type: String,
     default: "User",
   },
-
   createdAt: {
     type: Date,
     default: new Date(),
@@ -59,7 +70,6 @@ const userSchema = mongoose.Schema({
     data: String,
     default: "",
   },
-
   status: {
     type: String,
     default: "online",
@@ -68,7 +78,10 @@ const userSchema = mongoose.Schema({
     type: String,
     default: "",
   },
+  trustedDevices: [trustedDeviceSchema],
   otp: { type: String, default: null },
+  verified : Boolean,
 });
+
 
 module.exports = User = mongoose.model("user", userSchema);

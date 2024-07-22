@@ -1,9 +1,9 @@
 const express = require("express");
-const { registerRules, validator } = require("../middlewares/validator.js");
+const { registerRules, validator  } = require("../middlewares/validator.js");
 //const isAuth = require("../middlewares/passport-setup.js");
 const multer = require("multer");
 const fs = require("fs");
-const { isAuth, checkRole } = require('../middlewares/passport-setup.js');
+const { isAuth, checkRole , checkDeviceId } = require('../middlewares/passport-setup.js');
 const cloudinary = require('cloudinary').v2;
 const {
   register,
@@ -20,6 +20,7 @@ const {
   logout,
   removeImage,
   changePassword,
+  checkDevice
 
 } = require("../controllers/authController.js");
 
@@ -27,7 +28,8 @@ const router = express.Router();
 
 
 router.post("/register", registerRules(), validator, register);
-router.post("/login", login, authorizeRoles);
+// router.post('/check-device', checkDevice);
+router.post("/login", login, authorizeRoles , checkDeviceId);
 router.put("/profile/:id", updateUser);
 router.delete("/delete/:id", isAuth(), checkRole(['Administrateur']), deleteUser);
 router.post("/logout", logout);
@@ -37,9 +39,12 @@ router.get("/users", isAuth(), checkRole(['Administrateur']), allUsers);
 router.get("/user/:id", isAuth(), checkRole(['Administrateur', 'User']), getSingleUser);
 router.put("/changepassword", isAuth(), changePassword);
 router.get("/current", isAuth(), (req, res) => {
-  // console.log("req", req);
   res.json(req.user);
 });
+
+// router.post('/protected-route', isAuth(), checkDeviceId, (req, res) => {
+//   res.status(200).send('Access granted');
+// });
 
 
 //upload Config 
