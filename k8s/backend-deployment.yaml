@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: idp-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: ikbel436/idp_backend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: MONGO_URI
+        - name: BITBUCKET_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: BITBUCKET_USERNAME
+        - name: BITBUCKET_APP_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: BITBUCKET_APP_PASSWORD
+        - name: AWS_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: AWS_REGION
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: idp-depl
+spec:
+  type: NodePort
+  selector:
+    app: backend
+  ports:
+    - port: 3000
+      targetPort: 3000

@@ -37,5 +37,18 @@ jobs:
         run: |
           docker build -t ikbel436/idp_backend .
           docker push ikbel436/idp_backend
+      - name: Set up Kubernetes
+        uses: azure/setup-kubectl@v1
+        with:
+          version: 'v1.18.0'
+
+      - name: Deploy to Kubernetes
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > kubeconfig
+          kubectl --kubeconfig=kubeconfig apply -f k8s/backend-config.yaml
+          kubectl --kubeconfig=kubeconfig apply -f k8s/backend-deployment.yaml
+
 
 
