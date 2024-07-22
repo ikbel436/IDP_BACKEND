@@ -31,12 +31,12 @@ router.post("/register", registerRules(), validator, register);
 // router.post('/check-device', checkDevice);
 router.post("/login", login, authorizeRoles , checkDeviceId);
 router.put("/profile/:id", updateUser);
-router.delete("/delete/:id", isAuth(), checkRole(['Administrateur']), deleteUser);
+router.delete("/delete/:id", isAuth(), checkRole(['admin']), deleteUser);
 router.post("/logout", logout);
 router.post("/forgot", forgotPassword);
 router.post("/reset", resetPassword);
-router.get("/users", isAuth(), checkRole(['Administrateur']), allUsers);
-router.get("/user/:id", isAuth(), checkRole(['Administrateur', 'User']), getSingleUser);
+router.get("/users", isAuth(), checkRole(['admin']), allUsers);
+router.get("/user/:id", isAuth(), checkRole(['admin', 'User']), getSingleUser);
 router.put("/changepassword", isAuth(), changePassword);
 router.get("/current", isAuth(), (req, res) => {
   res.json(req.user);
