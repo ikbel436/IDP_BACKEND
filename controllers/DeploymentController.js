@@ -129,34 +129,64 @@ const getAllDeploymentsForAdmin = async (req, res) => {
       res.status(500).json({ errors: error.message });
     }
   };
+  
+
+  // Function to delete a deployment
+  const deleteDeployment = [
+    verifyToken,
+    async (req, res) => {
+      const deploymentId = req.params.id;
+  
+      try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+  
+        if (user.Role !== 'admin') {
+          return res.status(403).json({ message: "Access denied. Admins only." });
+        }
+  
+        const deployment = await Deployment.findById(deploymentId);
+        if (!deployment) {
+          return res.status(404).json({ message: "Deployment not found" });
+        }
+  
+        await Deployment.findByIdAndDelete(deploymentId);
+        res.status(200).json({ message: "Deployment deleted successfully" });
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
+    },
+  ];
   const getStartDate = (timeframe) => {
     const now = new Date();
-    console.log('Current date and time:', now);
+
     switch (timeframe) {
         case 'daily':
             const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            console.log('Start of the day:', startOfDay);
+       
             return startOfDay;
         case 'weekly':
             const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay()); // Start of the current week (Sunday)
-            startOfWeek.setHours(0, 0, 0, 0); // Reset time to start of the day
-            console.log('Start of the week:', startOfWeek);
+            startOfWeek.setDate(now.getDate() - now.getDay()); 
+            startOfWeek.setHours(0, 0, 0, 0); 
+          
             return startOfWeek;
         case 'monthly':
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // Start of the current month
-            console.log('Start of the month:', startOfMonth);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); 
+         
             return startOfMonth;
         default:
             const defaultDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            console.log('Default date:', defaultDate);
+        
             return defaultDate;
     }
 };
 
 const deploymentStat = async (req, res) => {
     try {
-        const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
+        const { timeframe } = req.query; 
         const startDate = getStartDate(timeframe);
 
         const deployments = await Deployment.find({
@@ -178,15 +208,11 @@ const deploymentStat = async (req, res) => {
                 const index = labels.indexOf(date);
                 deploymentCounts[index]++;
             }
-
-            // Count failed deployments
             if (deployment.status === 'failed') {
                 failedDeployments++;
             }
         });
 
-        // Here you can implement any custom logic based on the `Deployment` model
-        // For example, summarizing based on the `bundle` attribute
         const bundleSummary = deployments.reduce((summary, deployment) => {
             deployment.bundle.forEach(bundleId => {
                 if (!summary[bundleId]) {
@@ -197,20 +223,19 @@ const deploymentStat = async (req, res) => {
             return summary;
         }, {});
 
-        // Calculating additional stats dynamically
         const fixedDeployments = deployments.filter(d => d.status === 'passed').length;
-        const wontFixDeployments = Math.floor(totalDeployments * 0.05); // Placeholder logic
-        const reOpenedDeployments = Math.floor(totalDeployments * 0.2); // Placeholder logic
-        const needsTriageDeployments = Math.floor(totalDeployments * 0.15); // Placeholder logic
+        const wontFixDeployments = Math.floor(totalDeployments * 0.05); 
+        const reOpenedDeployments = Math.floor(totalDeployments * 0.2); 
+        const needsTriageDeployments = Math.floor(totalDeployments * 0.15); 
 
         const overview = {
             new: totalDeployments,
-            closed: failedDeployments, // Updated to show failed deployments
+            closed: failedDeployments, 
             fixed: fixedDeployments,
             wontFix: wontFixDeployments,
             reOpened: reOpenedDeployments,
             needsTriage: needsTriageDeployments,
-            bundleSummary // Add your custom logic output here
+            bundleSummary 
         };
 
         res.status(200).json({ totalDeployments, deployments: deploymentCounts, labels, overview });
@@ -261,34 +286,11 @@ const deploymentSuccessRate = async (req, res) => {
   }
 };
 
-// const deploymentFrequency = async (req, res) => {
-//   try {
-//     const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
-//     const startDate = getStartDate(timeframe);
 
-//     // Find users and their deployment counts within the timeframe
-//     const users = await User.find().populate({
-//       path: 'myDeployments',
-//       match: { createdAt: { $gte: startDate } },
-//       select: 'createdAt'
-//     });
-
-//     const totalUsers = users.length;
-//     const totalDeployments = users.reduce((acc, user) => acc + user.myDeployments.length, 0);
-//     const avgDeploymentsPerUser = totalUsers ? (totalDeployments / totalUsers).toFixed(2) : 0;
-
-//     res.status(200).json({ totalUsers, totalDeployments, avgDeploymentsPerUser });
-//   } catch (error) {
-//     console.error('Error fetching deployment frequency statistics:', error);
-//     res.status(500).json({ error: 'Failed to fetch deployment frequency statistics' });
-//   }
-// };
 const deploymentFrequency = async (req, res) => {
   try {
-    const { timeframe } = req.query; // 'daily', 'weekly', 'monthly'
+    const { timeframe } = req.query; 
     const startDate = getStartDate(timeframe);
-
-    // Aggregation pipeline to get the deployment frequency and details
     const userDeploymentDetails = await User.aggregate([
       {
         $lookup: {
@@ -347,5 +349,6 @@ module.exports = {
   getDeployments,
   deploymentStat,
   deploymentSuccessRate,
-  deploymentFrequency
+  deploymentFrequency,
+  deleteDeployment
 };
