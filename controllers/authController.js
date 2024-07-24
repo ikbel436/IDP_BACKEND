@@ -9,6 +9,7 @@ const secretOrkey = config.get("secretOrKey");
 const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
+const fs = require("fs");
 const path = require("path");
 //Password Crypt
 const bcrypt = require("bcryptjs");
@@ -85,7 +86,7 @@ exports.register = async (req, res) => {
     if (searchRes)
       return res
         .status(401)
-        .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
+        .json({ msg: `Utilisateur existant, utiliser un autre e-mail` });
     const currentDate = new Date();
     const birthDateObj = new Date(birthDate);
     const age = currentDate.getFullYear() - birthDateObj.getFullYear();
@@ -250,10 +251,17 @@ exports.forgotPassword = async (req, res) => {
         .json({ error: "user with this email does not exist" });
     }
 
+
+
     const accessToken = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
       expiresIn: "20m",
     });
+    const filePath = path.join(__dirname, "../templates/ResetPasswordTemplate.html");
+    const htmlContent = fs.readFileSync(filePath, "utf8");
+    const resetPasswordLink = `${Client_URL}/resetpassword/${accessToken}`; 
+    const finalHtml = htmlContent.replace('${resetPasswordLink}', resetPasswordLink);
 
+    
     let transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
@@ -266,12 +274,11 @@ exports.forgotPassword = async (req, res) => {
     });
 
     let info = await transporter.sendMail({
-      from: "noreplybackappX@backapp.com",
+      from: "noreplyinspark@insparkcom",
       to: email,
-      subject: "Account Activation link",
-      text: "Account Activation link",
-      html: `<h2>Please click on given link to activate your account</h2>
-        <p>${Client_URL}/resetpassword/${accessToken}</p>`,
+      subject: "Inspark@noreply.contact",
+      text: "Reset Password",
+      html: finalHtml,
     });
 
     await user.updateOne({ resetLink: accessToken });
