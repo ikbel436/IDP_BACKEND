@@ -1,9 +1,13 @@
 const otpGenerator = require("otp-generator");
 const nodemailer = require("nodemailer");
+const config = require("config");
 const User = require("../models/User.js");
 const fs = require("fs");
 const path = require("path");
+const SenderEmail = config.get("SenderEmail");
+const SenderPassword = config.get("SenderPassword");
 const { v4: uuidv4 } = require("uuid");
+const { send } = require("process");
 
 exports.generateOtp = async (req, res) => {
   const { userEmail } = req.body;
@@ -28,8 +32,8 @@ exports.generateOtp = async (req, res) => {
     let transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "ikbelbenmansour4@gmail.com",
-        pass: "axva rqhb oqas fmuh",
+        user: SenderEmail,
+        pass: SenderPassword,
       },
     });
 

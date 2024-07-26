@@ -6,6 +6,8 @@ const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 const config = require("config");
 const secretOrkey = config.get("secretOrKey");
+const SenderEmail = config.get("SenderEmail");
+const SenderPassword = config.get("SenderPassword");
 const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
@@ -267,8 +269,8 @@ exports.forgotPassword = async (req, res) => {
       port: 587,
       secure: false, // true for 465, false for other ports
       auth: {
-        user: "ikbelbenmansour4@gmail.com", // generated ethereal user
-        pass: "axva rqhb oqas fmuh", // generated ethereal password
+        user: SenderEmail,
+        pass: SenderPassword
       },
       tls: { rejectUnauthorized: false },
     });
