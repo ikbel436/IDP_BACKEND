@@ -22,7 +22,7 @@ const actionRoute = require("./routes/actionRoute");
 const deploymentRoutes = require("./routes/DeploymentRoute");
 const otpRoute = require("./routes/otpRoute");
 const axios = require("axios");
-
+const infrastructureRoutes = require("./routes/infrastructureRoute");
 const projectDepl = require("./routes/projectDeplRoutes");
 const corsOptions = {
   origin: "http://localhost:4200",
@@ -53,6 +53,7 @@ app.use("/api/actions", actionRoute);
 app.use("/depl", deploymentRoutes);
 app.use("/otp", otpRoute);
 app.use("/projectDepl",projectDepl);
+app.use("/infra", infrastructureRoutes);
 app.get('/api/docker-tags/:namespace/:repository', async (req, res) => {
   const { namespace, repository } = req.params;
   try {
