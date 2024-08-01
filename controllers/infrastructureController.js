@@ -10,60 +10,106 @@ cloudinary.config({
     api_key: "234343386118662",
     api_secret: "3sKIhiWIOna-LmiAK7XO2_v5Kbg",
   });
-  exports.addInfra = async (req, res) => {
+//   exports.addInfra = async (req, res) => {
+//     try {
+//         const user = await User.findById(req.user.id);
+//         if (user.Role !== 'admin') {
+//             return res.status(403).json({ message: "Access denied. Admins only." });
+//         }
+
+//         const { title, description, steps } = req.body;
+//         const { image, file } = req.files;
+
+//         const imageResult = await new Promise((resolve, reject) => {
+//             const uploadStream = cloudinary.uploader.upload_stream(
+//                 { folder: `uploads/${req.user.id}` },
+//                 (error, result) => {
+//                     if (error) {
+//                         reject(error);
+//                     } else {
+//                         resolve(result);
+//                     }
+//                 }
+//             );
+//             uploadStream.end(image[0].buffer);
+//         });
+
+//         const fileResult = await new Promise((resolve, reject) => {
+//             const uploadStream = cloudinary.uploader.upload_stream(
+//                 { folder: `uploads/${req.user.id}`, resource_type: 'raw' },
+//                 (error, result) => {
+//                     if (error) {
+//                         reject(error);
+//                     } else {
+//                         resolve(result);
+//                     }
+//                 }
+//             );
+//             uploadStream.end(file[0].buffer);
+//         });
+
+//         const infra = new Infra({
+//             title,
+//             description,
+//             imageUrl: imageResult.secure_url,
+//             fileUrl: fileResult.secure_url,
+//             steps,
+//             addedBy: req.user.id,
+//         });
+
+//         await infra.save();
+
+//         res.status(201).json({ message: 'Infra added successfully', infra });
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// };
+exports.addInfra = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
-        if (user.Role !== 'admin') {
-            return res.status(403).json({ message: "Access denied. Admins only." });
-        }
-
-        const { title, description, steps } = req.body;
-        const { image, file } = req.files;
-
-        const imageResult = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                { folder: `uploads/${req.user.id}` },
-                (error, result) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(result);
-                    }
-                }
-            );
-            uploadStream.end(image[0].buffer);
+      const user = await User.findById(req.user.id);
+      if (user.Role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admins only." });
+      }
+  
+      const { title, description, steps } = req.body;
+      const { image, file } = req.files;
+  
+      const uploadToCloudinary = (file, folder, resourceType = 'image') => {
+        const fileName = file.originalname;
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { folder: folder, resource_type: resourceType, public_id: fileName.split('.').slice(0, -1).join('.') },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+          uploadStream.end(file.buffer);
         });
-
-        const fileResult = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                { folder: `uploads/${req.user.id}`, resource_type: 'raw' },
-                (error, result) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(result);
-                    }
-                }
-            );
-            uploadStream.end(file[0].buffer);
-        });
-
-        const infra = new Infra({
-            title,
-            description,
-            imageUrl: imageResult.secure_url,
-            fileUrl: fileResult.secure_url,
-            steps,
-            addedBy: req.user.id,
-        });
-
-        await infra.save();
-
-        res.status(201).json({ message: 'Infra added successfully', infra });
+      };
+  
+      const imageResult = await uploadToCloudinary(image[0], `uploads/${req.user.id}`);
+      const fileResult = await uploadToCloudinary(file[0], `uploads/${req.user.id}`, 'raw');
+  
+      const infra = new Infra({
+        title,
+        description,
+        imageUrl: imageResult.secure_url,
+        fileUrl: fileResult.secure_url,
+        steps,
+        addedBy: req.user.id,
+      });
+  
+      await infra.save();
+  
+      res.status(201).json({ message: 'Infra added successfully', infra });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
-};
+  };
 exports.getInfras = async (req, res) => {
     try {
         const infras = await Infra.find();

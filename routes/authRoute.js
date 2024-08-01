@@ -87,7 +87,16 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") {
     filetype = "pdf-";
     fileExtension = "pdf";
-  }
+  }else if (file.mimetype === "text/plain") {
+    filetype = "text-";
+    fileExtension = "txt";
+  } else if (file.mimetype === "application/zip") {
+    filetype = "zip-";
+    fileExtension = "zip";
+  }  else if (file.mimetype === "application/octet-stream") {
+    filetype = "tf-";
+    fileExtension = "tf";
+  } 
 
   cb(null, filetype + Date.now() + "." + fileExtension);
   h = cb;

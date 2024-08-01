@@ -166,6 +166,7 @@ exports.updateUser = async (req, res) => {
       address,
       city,
     } = req.body;
+
     if (birthDate) {
       const currentDate = new Date();
       const birthDateObj = new Date(birthDate);
@@ -183,19 +184,24 @@ exports.updateUser = async (req, res) => {
           .json({ msg: "L'âge doit être de 18 ans ou plus" });
       }
     }
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, {
-      name,
-      email,
-      phoneNumber,
-      countryCode,
-      status,
-      description,
-      address,
-      birthDate,
-      codePostal,
-      country,
-      city,
-    });
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        email,
+        phoneNumber,
+        countryCode,
+        status,
+        description,
+        address,
+        birthDate,
+        codePostal,
+        country,
+        city,
+      },
+      { new: true } // Ensure the updated document is returned
+    );
 
     return res.status(201).json({
       msg: "L'utilisateur a été modifié avec succès",
@@ -205,6 +211,8 @@ exports.updateUser = async (req, res) => {
     return res.status(500).json({ msg: err.message });
   }
 };
+
+
 
 // Get all users
 exports.allUsers = async (req, res) => {

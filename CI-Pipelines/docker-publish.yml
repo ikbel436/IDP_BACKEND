@@ -5,12 +5,12 @@ name: Docker
       - build-docker-image
   push:
     branches:
-      - master
+      - main
     tags:
       - v*.*.*
   pull_request:
     branches:
-      - master
+      - main
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}

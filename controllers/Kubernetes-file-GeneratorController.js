@@ -760,157 +760,6 @@ const createDockerRegistrySecret = async (
   const command = `kubectl create secret docker-registry ${secretName} --docker-username=${dockerUsername} --docker-password=${dockerPassword} --docker-email=${dockerEmail} --namespace=${sanitizedNamespace}`;
   execSync(command);
 };
-// exports.generateDeploymentFile = async (req, res) => {
-//   const {
-//     serviceName,
-//     port,
-//     image,
-//     dockerTag,
-//     registryType,
-//     privacy,
-//     envVariables,
-//     expose,
-//     host,
-//     namespace,
-//     dockerUsername,
-//     dockerPassword,
-//     dockerEmail,
-//     imagePullSecretName,
-//     bundleId,
-//     projectId
-//   } = req.body;
-//   const authHeader = req.headers.authorization;
-//   const token = authHeader && authHeader.split(" ")[1];
-
-//   if (!token) {
-//     return res.status(401).json({ msg: "No token provided" });
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, config.get("secretOrKey"));
-//     const userId = decoded.id;
-
-//     if (
-//       imagePullSecretName &&
-//       dockerUsername &&
-//       dockerPassword &&
-//       dockerEmail
-//     ) {
-//       createDockerRegistrySecret(
-//         imagePullSecretName,
-//         dockerUsername,
-//         dockerPassword,
-//         dockerEmail,
-//         namespace
-//       );
-//     }
-//     const fullImage = `${image}:${dockerTag}`;
-//     const deploymentYaml = generateSpringBootDeployment(
-//       serviceName,
-//       port,
-//       fullImage,
-//       envVariables,
-//       namespace,
-//       imagePullSecretName
-//     );
-//     const k8sDir = generateK8sDir();
-//     const deploymentFilePath = path.join(
-//       k8sDir,
-//       `${serviceName}-deployment.yaml`
-//     );
-//     fs.writeFileSync(deploymentFilePath, deploymentYaml);
-
-//     let ingressFilePath = null;
-
-//     if (expose) {
-//       ingressFilePath = path.join(k8sDir, "ingress.yaml");
-//       let ingressYaml = "";
-
-//       if (fs.existsSync(ingressFilePath)) {
-//         const existingIngress = fs.readFileSync(ingressFilePath, "utf8");
-//         ingressYaml = addRuleToExistingIngress(
-//           existingIngress,
-//           serviceName,
-//           host,
-//           port,
-//           namespace
-//         );
-//       } else {
-//         const rules = [
-//           {
-//             host: `${host}.idp.insparkconnect.com`,
-//             serviceName,
-//             port,
-//             namespace,
-//           },
-//         ];
-//         ingressYaml = generateIngress(rules);
-//       }
-
-//       fs.writeFileSync(ingressFilePath, ingressYaml);
-//     }
-
-//     const existingProject = await Project.findById(projectId).populate('myprojectDepl');
-//     if (!existingProject) {
-//       return res.status(404).json({ msg: "Project not found" });
-//     }
-
-//     let projectDeploymentData;
-//     if (existingProject.myprojectDepl && existingProject.myprojectDepl.length > 0) {
-//       // Update the existing deployment
-//       const deploymentId = existingProject.myprojectDepl[0]._id;
-//       projectDeploymentData = await ProjectDeploymentConfig.findByIdAndUpdate(
-//         deploymentId,
-//         {
-//           serviceName,
-//           port,
-//           image: fullImage,
-//           registryType,
-//           privacy,
-//           envVariables: envVariables.map((variable) => ({
-//             key: variable.name,
-//             value: variable.value,
-//           })),
-//           expose,
-//           host,
-//           namespace,
-//         },
-//         { new: true }
-//       );
-//     } else {
-//       // Create new deployment
-//       projectDeploymentData = new ProjectDeploymentConfig({
-//         serviceName,
-//         port,
-//         image: fullImage,
-//         registryType,
-//         privacy,
-//         envVariables: envVariables.map((variable) => ({
-//           key: variable.name,
-//           value: variable.value,
-//         })),
-//         expose,
-//         host,
-//         namespace,
-//       });
-//       await projectDeploymentData.save();
-
-//       existingProject.myprojectDepl.push(projectDeploymentData._id);
-//       await existingProject.save();
-//     }
-
-//     res.status(201).json({
-//       msg: existingProject.myprojectDepl.length > 0 ? "Deployment files updated and applied" : "Deployment files generated and applied",
-//       deploymentFilePath,
-//       ingressFilePath,
-//       projectId: existingProject._id,
-//       bundleId,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ errors: error.message });
-//     console.log(error);
-//   }
-// };
 
 exports.generateDeploymentFile = async (req, res) => {
   const {
@@ -975,29 +824,20 @@ exports.generateDeploymentFile = async (req, res) => {
     // Ensure bucket name starts and ends with a letter or number
     folderName = folderName.replace(/^-/, 'a').replace(/-$/, 'z');
 
-    // Create the bucket if it doesn't exist
-    // try {
-    //   await s3.headBucket({ Bucket: bucketName }).promise();
-    // } catch (err) {
-    //   if (err.code === 'NotFound') {
-    //     await s3.createBucket({ Bucket: bucketName }).promise();
-    //   } else {
-    //     throw err;
-    //   }
-    // }
-
     // Upload the deployment YAML content to S3
     const deploymentUploadParams = {
       Bucket: 'insparki-dp',
       Key: `${folderName}/${serviceName}-deployment.yaml`,
       Body: deploymentYaml,
     };
+    console.log("upppp",deploymentUploadParams)
     const deploymentUploadResult = await s3.upload(deploymentUploadParams).promise();
 
     let ingressUploadResult = null;
+    const ingressKey = `${folderName}/ingress.yaml`;
     if (expose) {
-      if (await checkFileExistsInS3('insparki-dp', "ingress.yaml")) {
-        const existingIngress = await getFileFromS3(bucketName, "ingress.yaml");
+      if (await checkFileExistsInS3('insparki-dp', ingressKey)) {
+        const existingIngress = await getFileFromS3('insparki-dp', ingressKey);
         ingressYaml = addRuleToExistingIngress(
           existingIngress,
           serviceName,
@@ -1020,10 +860,12 @@ exports.generateDeploymentFile = async (req, res) => {
       // Upload the ingress YAML content to S3
       const ingressUploadParams = {
         Bucket: 'insparki-dp',
-        Key: `${folderName}/ingress.yaml`,
+        Key: ingressKey,
         Body: ingressYaml,
       };
       ingressUploadResult = await s3.upload(ingressUploadParams).promise();
+
+      console.log('Uploading ingress to S3:', ingressUploadParams);
     }
 
     const existingProject = await Project.findById(projectId).populate('myprojectDepl');
@@ -1109,6 +951,7 @@ async function getFileFromS3(bucketName, key) {
   const data = await s3.getObject(params).promise();
   return data.Body.toString('utf-8');
 }
+
 const generateIngress = (rules) => {
   const rulesYaml = rules
     .map(
@@ -1146,7 +989,6 @@ ${rulesYaml}
 `;
 };
 
-
 const addRuleToExistingIngress = (
   existingIngress,
   serviceName,
@@ -1167,28 +1009,27 @@ const addRuleToExistingIngress = (
                 number: ${port}
   `;
 
+  // Ensure the existing ingress has the correct namespace
+  const ingressWithNamespace = existingIngress.replace(
+    /namespace: .+/,
+    `namespace: ${namespace}`
+  );
 
-  const ruleRegex = new RegExp(`- host: ([\\w.-]+)\\s+http:\\s+paths:\\s+- path: /\\s+pathType: Prefix\\s+backend:\\s+service:\\s+name: ${serviceName}-service\\s+port:\\s+number: \\d+`, 'g');
-  const matches = [...existingIngress.matchAll(ruleRegex)];
+  // Check if the service already exists in the ingress rules
+  const ruleRegex = new RegExp(`- host: [\\w.-]+\\s+http:\\s+paths:\\s+- path: /\\s+pathType: Prefix\\s+backend:\\s+service:\\s+name: ${serviceName}-service\\s+port:\\s+number: \\d+`, 'g');
+  const match = ruleRegex.exec(ingressWithNamespace);
 
-  if (matches.length > 0) {
- 
-    let updatedIngress = existingIngress;
-    matches.forEach(match => {
-      const existingHost = match[1];
-      if (existingHost !== `${host}.idp.insparkconnect.com` || existingIngress.includes(`port: ${port}`)) {
-        updatedIngress = updatedIngress.replace(match[0], newRule.trim());
-      }
-    });
+  if (match) {
+    // If the service exists, replace the existing rule with the new rule
+    const updatedIngress = ingressWithNamespace.replace(match[0], newRule.trim());
     return updatedIngress;
   } else {
- 
-    const ingressWithNamespace = existingIngress.replace(
-      /namespace: .+/,
-      `namespace: ${namespace}`
-    );
-
+    // If the service does not exist, add the new rule
     const splitIngress = ingressWithNamespace.split("rules:");
-    return `${splitIngress[0]}rules:${splitIngress[1]}${newRule}`;
+    if (splitIngress.length > 1) {
+      return `${splitIngress[0]}rules:${splitIngress[1]}\n${newRule}`;
+    } else {
+      return `${ingressWithNamespace.trim()}\nrules:\n${newRule}`;
+    }
   }
 };
