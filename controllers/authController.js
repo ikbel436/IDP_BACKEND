@@ -40,12 +40,12 @@ exports.login = async (req, res) => {
 
     // Ensure trustedDevices is an array
     const trustedDevices = user.trustedDevices || [];
-    console.log('Trusted Devices:', trustedDevices);
+    // console.log('Trusted Devices:', trustedDevices);
 
     const now = new Date();
     // Check for non-expired trusted devices
     const trustedDevice = trustedDevices.find(device => new Date(device.expiresAt) > now);
-    console.log('Non-expired Trusted Device:', trustedDevice);
+    // console.log('Non-expired Trusted Device:', trustedDevice);
 
     if (!trustedDevice) {
       return res.status(401).json({ msg: 'No trusted device found, please verify your device', untrustedDevice: true });

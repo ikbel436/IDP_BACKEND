@@ -1,20 +1,18 @@
+// otpController.js
 const otpGenerator = require("otp-generator");
 const nodemailer = require("nodemailer");
 const config = require("config");
 const User = require("../models/User.js");
 const fs = require("fs");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+
 const SenderEmail = config.get("SenderEmail");
 const SenderPassword = config.get("SenderPassword");
-const { v4: uuidv4 } = require("uuid");
-const { send } = require("process");
 
 exports.generateOtp = async (req, res) => {
   const { userEmail } = req.body;
-  const otp = otpGenerator.generate(6, {
-    upperCase: true,
-    specialChars: true,
-  });
+  const otp = otpGenerator.generate(6, { upperCase: true, specialChars: true });
 
   try {
     let user = await User.findOne({ email: userEmail });
@@ -31,14 +29,11 @@ exports.generateOtp = async (req, res) => {
 
     let transporter = nodemailer.createTransport({
       service: "gmail",
-      auth: {
-        user: SenderEmail,
-        pass: SenderPassword,
-      },
+      auth: { user: SenderEmail, pass: SenderPassword },
     });
 
     let mailOptions = {
-      from: "noreply.inpsark@contact.tn",
+      from: "noreply@example.com",
       to: userEmail,
       subject: "Your OTP",
       html: finalHtml,
@@ -64,17 +59,15 @@ exports.verifyOtp = async (req, res) => {
 
   try {
     const user = await User.findOne({ email: userEmail });
-    console.log(user,"user");
-
     if (!user) {
       return res.status(404).send({ error: "User not found" });
     }
 
     if (user.otp === userOtp) {
       user.otp = null;
-      user.verified = true; 
+      user.verified = true;
 
-      const deviceId = uuidv4(); 
+      const deviceId = uuidv4();
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
 
@@ -84,7 +77,21 @@ exports.verifyOtp = async (req, res) => {
         deviceInfo: deviceInfo,
       });
 
+      const notification = {
+        id: uuidv4(),
+        title: "Device Verified",
+        description: `Your device has been verified.`,
+        time: new Date().toISOString(),
+        read: false,
+      };
+
+      user.notifications.push(notification);
+
       await user.save();
+
+      // Send notification via WebSocket
+      wss.broadcast(notification);
+
       return res.status(200).send({ message: "OTP verified successfully", verified: true, deviceId });
     } else {
       return res.status(400).send({ error: "Invalid OTP" });

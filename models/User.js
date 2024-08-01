@@ -15,6 +15,14 @@ const trustedDeviceSchema = new mongoose.Schema({
   deviceInfo: deviceInfoSchema,
 }, { _id: false });
 
+const notificationSchema = new mongoose.Schema({
+  id: String,
+  title: String,
+  description: String,
+  time: Date,
+  read: { type: Boolean, default: false }
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   name: String,
   email: String,
@@ -81,6 +89,8 @@ const userSchema = new mongoose.Schema({
   trustedDevices: [trustedDeviceSchema],
   otp: { type: String, default: null },
   verified : Boolean,
+  notifications: [notificationSchema]
+
 });
 
 
