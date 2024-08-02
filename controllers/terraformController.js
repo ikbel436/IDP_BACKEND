@@ -1,12 +1,10 @@
-              /* This JavaScript code defines two functions that interact with AWS services using the AWS SDK and
-                                                     Terraform. */
 const fs = require("fs");
 const { exec } = require("child_process");
 const { TerraformGenerator, map } = require("terraform-generator");
 const AWS = require("aws-sdk");
 const { EC2Client, TerminateInstancesCommand } = require("@aws-sdk/client-ec2");
-const { S3 } = require("aws-sdk/clients/s3");
-const wss = require("../index.js").wss;
+const { v4: uuidv4 } = require("uuid");
+const { wss } = require("../index.js"); // Ensure this is correctly imported
 
 // Configure AWS SDK
 const ec2Client = new EC2Client({ region: "ca-central-1" });
@@ -30,7 +28,7 @@ exports.generateTerraform = (req, res) => {
   // Check if ec2Instance is true in the request body
   if (configs.ec2Instance) {
     // Generate the EC2 instance configuration
-    const ec2Instance = tfg.resource("aws_instance", "my_ec2_instance", {
+    tfg.resource("aws_instance", "my_ec2_instance", {
       ami: configs.ami || "ami-0c55b159cbfafe1f0",
       instance_type: configs.instance_type || "t2.micro",
       key_name: configs.keyName || "2024key",
@@ -44,33 +42,26 @@ exports.generateTerraform = (req, res) => {
   if (configs.generateS3Module) {
     // Generate the S3 bucket configuration
     const s3BucketName = configs.s3BucketName || "example-bucket-name";
-    const s3Bucket = tfg.resource("aws_s3_bucket", "my_s3_bucket", {
+    tfg.resource("aws_s3_bucket", "my_s3_bucket", {
       bucket: s3BucketName,
     });
 
-    // Generate S3 bucket policy if generateS3Module is true
-    if (configs.generateS3Module) {
-      // Generate the S3 bucket policy
-      const s3BucketPolicy = tfg.resource(
-        "aws_s3_bucket_policy",
-        "private_policy",
-        {
-          bucket: s3BucketName,
-          policy: JSON.stringify({
-            Version: "2012-10-17",
-            Statement: [
-              {
-                Sid: "PrivateContent",
-                Effect: "Deny",
-                Principal: "*",
-                Action: "s3:GetObject",
-                Resource: `arn:aws:s3:::${s3BucketName}/*`,
-              },
-            ],
-          }),
-        }
-      );
-    }
+    // Generate S3 bucket policy
+    tfg.resource("aws_s3_bucket_policy", "private_policy", {
+      bucket: s3BucketName,
+      policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "PrivateContent",
+            Effect: "Deny",
+            Principal: "*",
+            Action: "s3:GetObject",
+            Resource: `arn:aws:s3:::${s3BucketName}/*`,
+          },
+        ],
+      }),
+    });
   }
 
   const result = tfg.generate();
@@ -86,7 +77,14 @@ exports.generateTerraform = (req, res) => {
   exec("terraform init", (error, stdout, stderr) => {
     if (error) {
       console.error(`Error running terraform init: ${error}`);
-      return;
+      wss.broadcast({
+        id: uuidv4(),
+        title: "Terraform Init Failed",
+        description: `Error running terraform init: ${error.message}`,
+        time: new Date().toISOString(),
+        read: false,
+      });
+      return res.status(500).send("Failed to initialize Terraform");
     }
     console.log(`Output from terraform init: ${stdout}`);
 
@@ -94,7 +92,14 @@ exports.generateTerraform = (req, res) => {
     exec("terraform plan -out=tfplan", (error, stdout, stderr) => {
       if (error) {
         console.error(`Error running terraform plan: ${error}`);
-        return;
+        wss.broadcast({
+          id: uuidv4(),
+          title: "Terraform Plan Failed",
+          description: `Error running terraform plan: ${error.message}`,
+          time: new Date().toISOString(),
+          read: false,
+        });
+        return res.status(500).send("Failed to plan Terraform execution");
       }
       console.log(`Output from terraform plan: ${stdout}`);
 
@@ -102,9 +107,30 @@ exports.generateTerraform = (req, res) => {
       exec("terraform apply -input=false tfplan", (error, stdout, stderr) => {
         if (error) {
           console.error(`Error running terraform apply: ${error}`);
-          return;
+
+          // Handling the S3 bucket error
+          if (stderr.includes("BucketAlreadyExists")) {
+            console.log("The S3 bucket already exists, continuing...");
+          } else {
+            wss.broadcast({
+              id: uuidv4(),
+              title: "Terraform Apply Failed",
+              description: `Error running terraform apply: ${error.message}`,
+              time: new Date().toISOString(),
+              read: false,
+            });
+            return res.status(500).send("Failed to apply Terraform execution");
+          }
         }
         console.log(`Output from terraform apply: ${stdout}`);
+
+        wss.broadcast({
+          id: uuidv4(),
+          title: "Terraform Apply Successful",
+          description: "Terraform applied successfully",
+          time: new Date().toISOString(),
+          read: false,
+        });
 
         // Respond with the output of the Terraform apply command
         res.json({
@@ -130,7 +156,22 @@ exports.destroyInstance = async (req, res) => {
   try {
     const data = await ec2Client.send(new TerminateInstancesCommand(params));
     res.send("Instance terminated successfully");
+    wss.broadcast({
+      id: uuidv4(),
+      title: "Instance Termination Successful",
+      description: `EC2 Instance ${instanceId} terminated successfully`,
+      time: new Date().toISOString(),
+      read: false,
+    });
   } catch (err) {
+    console.error(`Failed to terminate instance: ${err.message}`);
     res.status(500).send("Failed to terminate instance");
+    wss.broadcast({
+      id: uuidv4(),
+      title: "Instance Termination Failed",
+      description: `Failed to terminate EC2 Instance ${instanceId}: ${err.message}`,
+      time: new Date().toISOString(),
+      read: false,
+    });
   }
 };

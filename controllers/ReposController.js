@@ -2,6 +2,7 @@ const Repository = require("../models/Repositories");
 const jwt = require("jsonwebtoken");
 const config = require("config");
 const secretOrKey = config.get("secretOrKey");
+const { v4: uuidv4 } = require("uuid");
 
 
 
@@ -80,7 +81,7 @@ exports.AddRepotoUser = async (req, res) => {
     const userId = decoded.id;
 
     // Insert all repositories into the database
-    const newRepos = await Repositories.insertMany(repositories);
+    const newRepos = await Repository.insertMany(repositories);
 
     // Find the user by ID
     const searchedUser = await User.findOne({ _id: userId });
@@ -89,12 +90,26 @@ exports.AddRepotoUser = async (req, res) => {
     }
 
     // Update the user document to include the new repositories
-    searchedUser.myRepo = [...searchedUser.myRepo,...newRepos];
+    searchedUser.myRepo = [...searchedUser.myRepo, ...newRepos];
     const user = await User.findByIdAndUpdate(userId, searchedUser, {
       strictPopulate: false,
       new: true,
       useFindAndModify: false,
     }).populate({ path: "myRepo", model: Repository });
+
+    // Create and broadcast a notification
+    const notification = {
+      id: uuidv4(), // Assuming uuidv4() generates unique IDs
+      title: "New Repositories Added",
+      description: `You have successfully added new repositories.`,
+      time: new Date().toISOString(),
+      read: false,
+    };
+    user.notifications.push(notification);
+    await user.save();
+
+    // Broadcast the notification via WebSocket
+    wss.broadcast(notification);
 
     return res.status(201).json(user); // Return the updated user document
   } catch (error) {

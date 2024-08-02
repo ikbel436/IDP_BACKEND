@@ -13,6 +13,8 @@ const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
 const fs = require("fs");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+
 //Password Crypt
 const bcrypt = require("bcryptjs");
 const cloudinary = require("cloudinary").v2;
@@ -218,7 +220,7 @@ exports.updateUser = async (req, res) => {
 exports.allUsers = async (req, res) => {
   try {
    
-    const users = await User.find({ Role: { $ne: 'admin' } });
+    const users = await User.find({ Role: { $new: 'admin' } });
     res.status(200).json({
       users,
     });
@@ -302,11 +304,11 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-//Reset Password
+// Reset Password
 exports.resetPassword = async (req, res) => {
   const { resetLink, newPass } = req.body;
   if (resetLink && typeof resetLink === "string") {
-    jwt.verify(resetLink, RESET_PWD_KEY, function (err, decodedDatra) {
+    jwt.verify(resetLink, RESET_PWD_KEY, function (err, decodedData) {
       if (err) {
         return res.status(401).json({ err: "Incorrect accessToken/expired" });
       }
@@ -322,10 +324,24 @@ exports.resetPassword = async (req, res) => {
         user.password = hash;
         user.resetLink = "";
 
-        user.save((err, result) => {
+        user.save(async (err, result) => {
           if (err) {
             return res.status(400).json({ error: "reset password error" });
           } else {
+            const notification = {
+              id: uuidv4(), 
+              title: "Password Reset Successful",
+              description: "Your password has been successfully reset.",
+              time: new Date().toISOString(),
+              read: false,
+            };
+
+            user.notifications.push(notification);
+
+            await user.save();
+
+            wss.broadcast(notification); 
+
             return res.status(200).json({
               message: "Your password has been changed",
             });
@@ -337,6 +353,8 @@ exports.resetPassword = async (req, res) => {
     return res.status(401).json({ error: "Invalid or missing reset link" });
   }
 };
+
+
 
 exports.uploadImage = async (req, res) => {
   const { userId } = req.params;
