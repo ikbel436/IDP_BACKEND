@@ -1,9 +1,9 @@
 const express = require("express");
-const { registerRules, validator } = require("../middlewares/validator.js");
+const { registerRules, validator  } = require("../middlewares/validator.js");
 //const isAuth = require("../middlewares/passport-setup.js");
 const multer = require("multer");
 const fs = require("fs");
-const { isAuth, checkRole } = require('../middlewares/passport-setup.js');
+const { isAuth, checkRole , checkDeviceId } = require('../middlewares/passport-setup.js');
 const cloudinary = require('cloudinary').v2;
 const {
   register,
@@ -20,6 +20,7 @@ const {
   logout,
   removeImage,
   changePassword,
+  checkDevice
 
 } = require("../controllers/authController.js");
 
@@ -27,7 +28,8 @@ const router = express.Router();
 
 
 router.post("/register", registerRules(), validator, register);
-router.post("/login", login, authorizeRoles);
+// router.post('/check-device', checkDevice);
+router.post("/login", login, authorizeRoles , checkDeviceId);
 router.put("/profile/:id", updateUser);
 router.delete("/delete/:id", isAuth(), checkRole(['admin']), deleteUser);
 router.post("/logout", logout);
@@ -37,9 +39,12 @@ router.get("/users", isAuth(), checkRole(['admin']), allUsers);
 router.get("/user/:id", isAuth(), checkRole(['admin', 'User']), getSingleUser);
 router.put("/changepassword", isAuth(), changePassword);
 router.get("/current", isAuth(), (req, res) => {
-  // console.log("req", req);
   res.json(req.user);
 });
+
+// router.post('/protected-route', isAuth(), checkDeviceId, (req, res) => {
+//   res.status(200).send('Access granted');
+// });
 
 
 //upload Config 
@@ -82,7 +87,16 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") {
     filetype = "pdf-";
     fileExtension = "pdf";
-  }
+  }else if (file.mimetype === "text/plain") {
+    filetype = "text-";
+    fileExtension = "txt";
+  } else if (file.mimetype === "application/zip") {
+    filetype = "zip-";
+    fileExtension = "zip";
+  }  else if (file.mimetype === "application/octet-stream") {
+    filetype = "tf-";
+    fileExtension = "tf";
+  } 
 
   cb(null, filetype + Date.now() + "." + fileExtension);
   h = cb;

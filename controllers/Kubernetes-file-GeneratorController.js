@@ -19,6 +19,7 @@ const { S3Client, CreateBucketCommand, PutObjectCommand, HeadBucketCommand } = r
 const { fromIni } = require("@aws-sdk/credential-provider-ini");
 const TerraformGenerator = require("terraform-generator").default;
 const AWS = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
 // AWS S3 configuration
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -133,74 +134,7 @@ const pushToBitbucketFromS3 = async (namespace) => {
   await uploadFileToBitbucket(`argo-apps/${sanitizedNamespace}/${namespace}-application.yaml`, argoCDApplicationYaml, `Add ArgoCD application for ${namespace}`);
 };
 
-// exports.testPush = async (req, res) => {
-//   const { name, description, bundles, namespace } = req.body;
-//   const authHeader = req.headers.authorization;
-//   const token = authHeader && authHeader.split(" ")[1];
 
-//   if (!token) {
-//     return res.status(401).json({ msg: "No token provided" });
-//   }
-
-//   if (!namespace) {
-//     return res.status(400).send({ error: "Namespace is required" });
-//   }
-
-//   const sanitizedNamespace = namespace.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+|-+$/g, "");
-
-//   // await createNamespace(sanitizedNamespace);
-
-//   try {
-//     const decoded = jwt.verify(token, config.get("secretOrKey"));
-//     const userId = decoded.id;
-
-//     try {
-//       await pushToBitbucketFromS3(sanitizedNamespace);
-
-//       // Save the deployment information with status 'passed'
-//       const deployment = new Deployment({
-//         name,
-//         description,
-//         bundle: bundles,
-//         user: userId,
-//         status: "passed",
-//         namespace: sanitizedNamespace,
-//       });
-//       await deployment.save();
-
-//       // Update the user document to include this deployment
-//       await User.findByIdAndUpdate(userId, {
-//         $push: { myDeployments: deployment._id },
-//       });
-
-//       res.status(200).json({ message: "Files pushed to Bitbucket successfully." });
-//     } catch (error) {
-//       // Save the deployment information with status 'failed'
-//       const deployment = new Deployment({
-//         name,
-//         description,
-//         bundle: bundles,
-//         user: userId,
-//         status: "failed",
-//         namespace: sanitizedNamespace,
-//       });
-//       await deployment.save();
-
-//       // Update the user document to include this deployment
-//       await User.findByIdAndUpdate(userId, {
-//         $push: { myDeployments: deployment._id },
-//       });
-
-//       console.error(error);
-//       res.status(500).json({
-//         message: `An error occurred during git push: ${error.message}`,
-//       });
-//     }
-//   } catch (error) {
-//     res.status(500).json({ errors: error.message });
-//     console.error(error);
-//   }
-// };
 // Function to generate a directory for Kubernetes files
 exports.testPush = async (req, res) => {
   const { name, description, bundles, namespace } = req.body;
@@ -236,12 +170,19 @@ exports.testPush = async (req, res) => {
         namespace: sanitizedNamespace,
       });
       await deployment.save();
-
+      const notification = {
+        id: uuidv4(),
+        title: "Deployment Successful",
+        description: `Your deployment for ${name} has been successfully completed.`,
+        time: new Date().toISOString(),
+        read: false,
+      };
       // Update the user document to include this deployment
       await User.findByIdAndUpdate(userId, {
         $push: { myDeployments: deployment._id },
+        notifications: notification,
       });
-
+      wss.broadcast(notification);
       res.status(200).json({ message: "Files pushed to Bitbucket successfully." });
     } catch (error) {
       // Save the deployment information with status 'failed'
@@ -254,12 +195,19 @@ exports.testPush = async (req, res) => {
         namespace: sanitizedNamespace,
       });
       await deployment.save();
-
+      const notification = {
+        id: uuidv4(),
+        title: "Deployment Failed",
+        description: `An error occurred during the deployment for ${name}.`,
+        time: new Date().toISOString(),
+        read: false,
+      };
       // Update the user document to include this deployment
       await User.findByIdAndUpdate(userId, {
         $push: { myDeployments: deployment._id },
+        notifications: notification,
       });
-
+      wss.broadcast(notification);
       console.error(error);
       res.status(500).json({
         message: `An error occurred during git push: ${error.message}`,
@@ -392,145 +340,6 @@ function sanitizeBucketName(name) {
     .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
     .replace(/\.+/g, '.'); // Remove consecutive dots
 }
-// exports.generateDataBaseFile = async (req, res) => {
-//   const { dbType, serviceName, dbName, port, envVariables, namespace, bundleId } = req.body;
-//   const authHeader = req.headers.authorization;
-//   const token = authHeader && authHeader.split(" ")[1];
-
-//   if (!token) {
-//     return res.status(401).json({ msg: "No token provided" });
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, config.get("secretOrKey"));
-//     const userId = decoded.id;
-
-//     const deploymentYaml = generateDatabaseDeployment(
-//       dbType,
-//       serviceName,
-//       dbName,
-//       port,
-//       envVariables,
-//       namespace
-//     );
-
-//     // Sanitize namespace to create a valid bucket name
-//     const sanitizedNamespace = sanitizeBucketName(namespace);
-//     let bucketName = `${sanitizedNamespace}`.slice(0, 63);
-
-//     // Ensure bucket name starts and ends with a letter or number
-//     bucketName = bucketName.replace(/^-/, 'a').replace(/-$/, 'z');
-
-//     // Create the bucket if it doesn't exist
-//     try {
-//       await s3.headBucket({ Bucket: bucketName }).promise();
-//     } catch (err) {
-//       if (err.code === 'NotFound' || err.code === 'NoSuchBucket') {
-//         await s3.createBucket({ Bucket: bucketName }).promise();
-//       } else if (err.code !== 'BucketAlreadyOwnedByYou') {
-//         throw err;
-//       }
-//     }
-
-//     // Upload the content directly to S3
-//     const uploadParams = {
-//       Bucket: bucketName,
-//       Key: `${serviceName}-deployment.yaml`,
-//       Body: deploymentYaml,
-//     };
-
-//     const uploadResult = await s3.upload(uploadParams).promise();
-
-//     const newDbConfig = new DatabaseConfig({
-//       type: dbType,
-//       serviceName: serviceName,
-//       port: port,
-//       envVariables: envVariables.map((variable) => ({
-//         key: variable.name,
-//         value: variable.value,
-//       })),
-//     });
-
-//     await newDbConfig.save();
-
-//     const existingBundle = await Bundle.findById(bundleId);
-
-//     if (!existingBundle) {
-//       return res.status(404).json({ msg: "Bundle not found" });
-//     }
-
-//     existingBundle.myDBconfig = [newDbConfig._id];
-//     await existingBundle.save();
-
-//     res.status(200).json({
-//       msg: "Database deployment file generated and uploaded to S3, and database configuration updated.",
-//       s3Bucket: bucketName,
-//       s3FilePath: uploadResult.Location,
-//       bundleId: existingBundle._id,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ errors: error.message });
-//     console.error(error);
-//   }
-// };
-// exports.generateDataBaseFile = async (req, res) => {
-//   const { dbType, serviceName, dbName, port, envVariables, namespace, bundleId } = req.body;
-//   const authHeader = req.headers.authorization;
-//   const token = authHeader && authHeader.split(" ")[1];
-
-//   if (!token) {
-//     return res.status(401).json({ msg: "No token provided" });
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, config.get("secretOrKey"));
-//     const userId = decoded.id;
-
-//     const deploymentYaml = generateDatabaseDeployment(
-//       dbType,
-//       serviceName,
-//       dbName,
-//       port,
-//       envVariables,
-//       namespace
-//     );
-//     const k8sDir = generateK8sDir();
-//     const deploymentFilePath = path.join(k8sDir,`${serviceName}-deployment.yaml`);
-//     fs.writeFileSync(deploymentFilePath, deploymentYaml);
-
-//     const newDbConfig = new DatabaseConfig({
-//       type: dbType,
-//       serviceName: serviceName,
-//       port: port,
-//       envVariables: envVariables.map((variable) => ({
-//         key: variable.name,
-//         value: variable.value,
-//       })),
-//     });
-
-//     await newDbConfig.save();
-
-//     const existingBundle = await Bundle.findById(bundleId); 
-
-//     if (!existingBundle) {
-//       return res.status(404).json({ msg: "Bundle not found" });
-//     }
-
-//     existingBundle.myDBconfig = [newDbConfig._id]; 
-//     await existingBundle.save();
-
-//     res.status(200).json({
-//       msg: "Database deployment file generated and applied, and database configuration updated.",
-//       deploymentFilePath,
-//       bundleId: existingBundle._id,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ errors: error.message });
-//     console.error(error);
-//   }
-// };
-
-
 
 // Function to add a database configuration to a bundle
 async function addDatabaseConfigToBundle(bundleId, databaseConfigId) {
@@ -577,25 +386,6 @@ exports.generateDataBaseFile = async (req, res) => {
     // Ensure bucket name starts and ends with a letter or number
     folderName = folderName.replace(/^-/, 'a').replace(/-$/, 'z');
 
-
-    // Create the bucket if it doesn't exist
-    // try {
-    //   console.log(`Checking if bucket ${bucketName} exists...`);
-    //   await s3.headBucket({ Bucket: bucketName }).promise();
-    //   console.log(`Bucket ${bucketName} exists.`);
-    // } catch (err) {
-    //   if (err.code === 'NotFound' || err.code === 'NoSuchBucket') {
-    //     console.log(`Bucket ${bucketName} not found, creating...`);
-    //     await s3.createBucket({ Bucket: bucketName }).promise();
-    //     console.log(`Bucket ${bucketName} created.`);
-    //   } else if (err.code === 'Forbidden') {
-    //     console.error('Access to the bucket is forbidden. Check IAM permissions.');
-    //     throw err;
-    //   } else {
-    //     console.error('Error checking bucket:', err);
-    //     throw err;
-    //   }
-    // }
 
     // Upload the content directly to S3
     const uploadParams = {
@@ -760,157 +550,6 @@ const createDockerRegistrySecret = async (
   const command = `kubectl create secret docker-registry ${secretName} --docker-username=${dockerUsername} --docker-password=${dockerPassword} --docker-email=${dockerEmail} --namespace=${sanitizedNamespace}`;
   execSync(command);
 };
-// exports.generateDeploymentFile = async (req, res) => {
-//   const {
-//     serviceName,
-//     port,
-//     image,
-//     dockerTag,
-//     registryType,
-//     privacy,
-//     envVariables,
-//     expose,
-//     host,
-//     namespace,
-//     dockerUsername,
-//     dockerPassword,
-//     dockerEmail,
-//     imagePullSecretName,
-//     bundleId,
-//     projectId
-//   } = req.body;
-//   const authHeader = req.headers.authorization;
-//   const token = authHeader && authHeader.split(" ")[1];
-
-//   if (!token) {
-//     return res.status(401).json({ msg: "No token provided" });
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, config.get("secretOrKey"));
-//     const userId = decoded.id;
-
-//     if (
-//       imagePullSecretName &&
-//       dockerUsername &&
-//       dockerPassword &&
-//       dockerEmail
-//     ) {
-//       createDockerRegistrySecret(
-//         imagePullSecretName,
-//         dockerUsername,
-//         dockerPassword,
-//         dockerEmail,
-//         namespace
-//       );
-//     }
-//     const fullImage = `${image}:${dockerTag}`;
-//     const deploymentYaml = generateSpringBootDeployment(
-//       serviceName,
-//       port,
-//       fullImage,
-//       envVariables,
-//       namespace,
-//       imagePullSecretName
-//     );
-//     const k8sDir = generateK8sDir();
-//     const deploymentFilePath = path.join(
-//       k8sDir,
-//       `${serviceName}-deployment.yaml`
-//     );
-//     fs.writeFileSync(deploymentFilePath, deploymentYaml);
-
-//     let ingressFilePath = null;
-
-//     if (expose) {
-//       ingressFilePath = path.join(k8sDir, "ingress.yaml");
-//       let ingressYaml = "";
-
-//       if (fs.existsSync(ingressFilePath)) {
-//         const existingIngress = fs.readFileSync(ingressFilePath, "utf8");
-//         ingressYaml = addRuleToExistingIngress(
-//           existingIngress,
-//           serviceName,
-//           host,
-//           port,
-//           namespace
-//         );
-//       } else {
-//         const rules = [
-//           {
-//             host: `${host}.idp.insparkconnect.com`,
-//             serviceName,
-//             port,
-//             namespace,
-//           },
-//         ];
-//         ingressYaml = generateIngress(rules);
-//       }
-
-//       fs.writeFileSync(ingressFilePath, ingressYaml);
-//     }
-
-//     const existingProject = await Project.findById(projectId).populate('myprojectDepl');
-//     if (!existingProject) {
-//       return res.status(404).json({ msg: "Project not found" });
-//     }
-
-//     let projectDeploymentData;
-//     if (existingProject.myprojectDepl && existingProject.myprojectDepl.length > 0) {
-//       // Update the existing deployment
-//       const deploymentId = existingProject.myprojectDepl[0]._id;
-//       projectDeploymentData = await ProjectDeploymentConfig.findByIdAndUpdate(
-//         deploymentId,
-//         {
-//           serviceName,
-//           port,
-//           image: fullImage,
-//           registryType,
-//           privacy,
-//           envVariables: envVariables.map((variable) => ({
-//             key: variable.name,
-//             value: variable.value,
-//           })),
-//           expose,
-//           host,
-//           namespace,
-//         },
-//         { new: true }
-//       );
-//     } else {
-//       // Create new deployment
-//       projectDeploymentData = new ProjectDeploymentConfig({
-//         serviceName,
-//         port,
-//         image: fullImage,
-//         registryType,
-//         privacy,
-//         envVariables: envVariables.map((variable) => ({
-//           key: variable.name,
-//           value: variable.value,
-//         })),
-//         expose,
-//         host,
-//         namespace,
-//       });
-//       await projectDeploymentData.save();
-
-//       existingProject.myprojectDepl.push(projectDeploymentData._id);
-//       await existingProject.save();
-//     }
-
-//     res.status(201).json({
-//       msg: existingProject.myprojectDepl.length > 0 ? "Deployment files updated and applied" : "Deployment files generated and applied",
-//       deploymentFilePath,
-//       ingressFilePath,
-//       projectId: existingProject._id,
-//       bundleId,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ errors: error.message });
-//     console.log(error);
-//   }
-// };
 
 exports.generateDeploymentFile = async (req, res) => {
   const {
@@ -975,29 +614,20 @@ exports.generateDeploymentFile = async (req, res) => {
     // Ensure bucket name starts and ends with a letter or number
     folderName = folderName.replace(/^-/, 'a').replace(/-$/, 'z');
 
-    // Create the bucket if it doesn't exist
-    // try {
-    //   await s3.headBucket({ Bucket: bucketName }).promise();
-    // } catch (err) {
-    //   if (err.code === 'NotFound') {
-    //     await s3.createBucket({ Bucket: bucketName }).promise();
-    //   } else {
-    //     throw err;
-    //   }
-    // }
-
     // Upload the deployment YAML content to S3
     const deploymentUploadParams = {
       Bucket: 'insparki-dp',
       Key: `${folderName}/${serviceName}-deployment.yaml`,
       Body: deploymentYaml,
     };
+    console.log("upppp",deploymentUploadParams)
     const deploymentUploadResult = await s3.upload(deploymentUploadParams).promise();
 
     let ingressUploadResult = null;
+    const ingressKey = `${folderName}/ingress.yaml`;
     if (expose) {
-      if (await checkFileExistsInS3('insparki-dp', "ingress.yaml")) {
-        const existingIngress = await getFileFromS3(bucketName, "ingress.yaml");
+      if (await checkFileExistsInS3('insparki-dp', ingressKey)) {
+        const existingIngress = await getFileFromS3('insparki-dp', ingressKey);
         ingressYaml = addRuleToExistingIngress(
           existingIngress,
           serviceName,
@@ -1020,10 +650,12 @@ exports.generateDeploymentFile = async (req, res) => {
       // Upload the ingress YAML content to S3
       const ingressUploadParams = {
         Bucket: 'insparki-dp',
-        Key: `${folderName}/ingress.yaml`,
+        Key: ingressKey,
         Body: ingressYaml,
       };
       ingressUploadResult = await s3.upload(ingressUploadParams).promise();
+
+      console.log('Uploading ingress to S3:', ingressUploadParams);
     }
 
     const existingProject = await Project.findById(projectId).populate('myprojectDepl');
@@ -1109,6 +741,7 @@ async function getFileFromS3(bucketName, key) {
   const data = await s3.getObject(params).promise();
   return data.Body.toString('utf-8');
 }
+
 const generateIngress = (rules) => {
   const rulesYaml = rules
     .map(
@@ -1146,7 +779,6 @@ ${rulesYaml}
 `;
 };
 
-
 const addRuleToExistingIngress = (
   existingIngress,
   serviceName,
@@ -1167,28 +799,27 @@ const addRuleToExistingIngress = (
                 number: ${port}
   `;
 
+  // Ensure the existing ingress has the correct namespace
+  const ingressWithNamespace = existingIngress.replace(
+    /namespace: .+/,
+    `namespace: ${namespace}`
+  );
 
-  const ruleRegex = new RegExp(`- host: ([\\w.-]+)\\s+http:\\s+paths:\\s+- path: /\\s+pathType: Prefix\\s+backend:\\s+service:\\s+name: ${serviceName}-service\\s+port:\\s+number: \\d+`, 'g');
-  const matches = [...existingIngress.matchAll(ruleRegex)];
+  // Check if the service already exists in the ingress rules
+  const ruleRegex = new RegExp(`- host: [\\w.-]+\\s+http:\\s+paths:\\s+- path: /\\s+pathType: Prefix\\s+backend:\\s+service:\\s+name: ${serviceName}-service\\s+port:\\s+number: \\d+`, 'g');
+  const match = ruleRegex.exec(ingressWithNamespace);
 
-  if (matches.length > 0) {
- 
-    let updatedIngress = existingIngress;
-    matches.forEach(match => {
-      const existingHost = match[1];
-      if (existingHost !== `${host}.idp.insparkconnect.com` || existingIngress.includes(`port: ${port}`)) {
-        updatedIngress = updatedIngress.replace(match[0], newRule.trim());
-      }
-    });
+  if (match) {
+    // If the service exists, replace the existing rule with the new rule
+    const updatedIngress = ingressWithNamespace.replace(match[0], newRule.trim());
     return updatedIngress;
   } else {
- 
-    const ingressWithNamespace = existingIngress.replace(
-      /namespace: .+/,
-      `namespace: ${namespace}`
-    );
-
+    // If the service does not exist, add the new rule
     const splitIngress = ingressWithNamespace.split("rules:");
-    return `${splitIngress[0]}rules:${splitIngress[1]}${newRule}`;
+    if (splitIngress.length > 1) {
+      return `${splitIngress[0]}rules:${splitIngress[1]}\n${newRule}`;
+    } else {
+      return `${ingressWithNamespace.trim()}\nrules:\n${newRule}`;
+    }
   }
 };

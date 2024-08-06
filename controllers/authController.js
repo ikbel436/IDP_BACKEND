@@ -6,11 +6,15 @@ const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 const config = require("config");
 const secretOrkey = config.get("secretOrKey");
+const SenderEmail = config.get("SenderEmail");
+const SenderPassword = config.get("SenderPassword");
 const nodemailer = require("nodemailer");
 const RESET_PWD_KEY = config.get("RESET_PWD_KEY");
 const Client_URL = config.get("Client_URL");
+const fs = require("fs");
 const path = require("path");
-//const sendEmail = require("../config/sendEmail.js");
+const { v4: uuidv4 } = require("uuid");
+
 //Password Crypt
 const bcrypt = require("bcryptjs");
 const cloudinary = require("cloudinary").v2;
@@ -19,16 +23,35 @@ cloudinary.config({
   api_key: "234343386118662",
   api_secret: "3sKIhiWIOna-LmiAK7XO2_v5Kbg",
 });
+
+
+
 // Login User
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(404).json({ msg: `Email ou mot de passe incorrect` });
+    const user = await User.findOne({ email }).lean();
+    if (!user) {
+      return res.status(404).json({ msg: 'Email or password incorrect' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ msg: `Email ou mot de passe incorrect` });
+    if (!isMatch) {
+      return res.status(401).json({ msg: 'Email or password incorrect' });
+    }
+
+    // Ensure trustedDevices is an array
+    const trustedDevices = user.trustedDevices || [];
+    // console.log('Trusted Devices:', trustedDevices);
+
+    const now = new Date();
+    // Check for non-expired trusted devices
+    const trustedDevice = trustedDevices.find(device => new Date(device.expiresAt) > now);
+    // console.log('Non-expired Trusted Device:', trustedDevice);
+
+    if (!trustedDevice) {
+      return res.status(401).json({ msg: 'No trusted device found, please verify your device', untrustedDevice: true });
+    }
 
     const payload = {
       id: user._id,
@@ -41,28 +64,33 @@ exports.login = async (req, res) => {
       codePostal: user.codePostal,
       country: user.country,
       myProjects: user.myProject,
-      myRepos : user.myRepo,
+      myRepos: user.myRepo,
+      deviceId: trustedDevice.deviceId,
+      deviceInfo: trustedDevice.deviceInfo,
     };
 
-    const token = await jwt.sign(payload, secretOrkey);
+    const token = jwt.sign(payload, secretOrkey);
+    res.cookie('jwt', token, { httpOnly: true, secure: true });
     return res.status(200).json({ token: `${token}`, user });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ msg: "Internal server error", error: error.message });
+    console.error('Error in login:', error);
+    return res.status(500).json({ msg: 'Internal server error', error: error.message });
   }
 };
+
+
+
 
 // Register User
 exports.register = async (req, res) => {
   const { name, email, phoneNumber, password, birthDate } = req.body;
-  const role = req.body.Role || 'User';
+  const role = req.body.Role || "User";
   try {
     const searchRes = await User.findOne({ email });
     if (searchRes)
       return res
         .status(401)
-        .json({ msg: `Utilisateur existant , utiliser un autre E-mail` });
+        .json({ msg: `Utilisateur existant, utiliser un autre e-mail` });
     const currentDate = new Date();
     const birthDateObj = new Date(birthDate);
     const age = currentDate.getFullYear() - birthDateObj.getFullYear();
@@ -71,7 +99,8 @@ exports.register = async (req, res) => {
 
     if (
       age < 18 ||
-      (age === 18 && (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
+      (age === 18 &&
+        (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
     ) {
       return res.status(400).json({ msg: "L'âge doit être de 18 ans ou plus" });
     }
@@ -139,6 +168,7 @@ exports.updateUser = async (req, res) => {
       address,
       city,
     } = req.body;
+
     if (birthDate) {
       const currentDate = new Date();
       const birthDateObj = new Date(birthDate);
@@ -148,24 +178,32 @@ exports.updateUser = async (req, res) => {
 
       if (
         age < 18 ||
-        (age === 18 && (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
+        (age === 18 &&
+          (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)))
       ) {
-        return res.status(400).json({ msg: "L'âge doit être de 18 ans ou plus" });
+        return res
+          .status(400)
+          .json({ msg: "L'âge doit être de 18 ans ou plus" });
       }
     }
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, {
-      name,
-      email,
-      phoneNumber,
-      countryCode,
-      status,
-      description,
-      address,
-      birthDate,
-      codePostal,
-      country,
-      city,
-    });
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        email,
+        phoneNumber,
+        countryCode,
+        status,
+        description,
+        address,
+        birthDate,
+        codePostal,
+        country,
+        city,
+      },
+      { new: true } // Ensure the updated document is returned
+    );
 
     return res.status(201).json({
       msg: "L'utilisateur a été modifié avec succès",
@@ -176,11 +214,12 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+
+
 // Get all users
 exports.allUsers = async (req, res) => {
   try {
-   
-    const users = await User.find({ Role: { $ne: 'admin' } });
+    const users = await User.find({ Role: 'User' });
     res.status(200).json({
       users,
     });
@@ -223,28 +262,34 @@ exports.forgotPassword = async (req, res) => {
         .json({ error: "user with this email does not exist" });
     }
 
+
+
     const accessToken = jwt.sign({ _id: user._id }, RESET_PWD_KEY, {
       expiresIn: "20m",
     });
+    const filePath = path.join(__dirname, "../templates/ResetPasswordTemplate.html");
+    const htmlContent = fs.readFileSync(filePath, "utf8");
+    const resetPasswordLink = `${Client_URL}/resetpassword/${accessToken}`; 
+    const finalHtml = htmlContent.replace('${resetPasswordLink}', resetPasswordLink);
 
+    
     let transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
       secure: false, // true for 465, false for other ports
       auth: {
-        user: "ikbelbenmansour4@gmail.com", // generated ethereal user
-        pass: "axva rqhb oqas fmuh", // generated ethereal password
+        user: SenderEmail,
+        pass: SenderPassword
       },
       tls: { rejectUnauthorized: false },
     });
 
     let info = await transporter.sendMail({
-      from: "noreplybackappX@backapp.com",
+      from: "noreplyinspark@insparkcom",
       to: email,
-      subject: "Account Activation link",
-      text: "Account Activation link",
-      html: `<h2>Please click on given link to activate your account</h2>
-        <p>${Client_URL}/resetpassword/${accessToken}</p>`,
+      subject: "Inspark@noreply.contact",
+      text: "Reset Password",
+      html: finalHtml,
     });
 
     await user.updateOne({ resetLink: accessToken });
@@ -258,11 +303,11 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-//Reset Password
+// Reset Password
 exports.resetPassword = async (req, res) => {
   const { resetLink, newPass } = req.body;
   if (resetLink && typeof resetLink === "string") {
-    jwt.verify(resetLink, RESET_PWD_KEY, function (err, decodedDatra) {
+    jwt.verify(resetLink, RESET_PWD_KEY, function (err, decodedData) {
       if (err) {
         return res.status(401).json({ err: "Incorrect accessToken/expired" });
       }
@@ -278,10 +323,24 @@ exports.resetPassword = async (req, res) => {
         user.password = hash;
         user.resetLink = "";
 
-        user.save((err, result) => {
+        user.save(async (err, result) => {
           if (err) {
             return res.status(400).json({ error: "reset password error" });
           } else {
+            const notification = {
+              id: uuidv4(), 
+              title: "Password Reset Successful",
+              description: "Your password has been successfully reset.",
+              time: new Date().toISOString(),
+              read: false,
+            };
+
+            user.notifications.push(notification);
+
+            await user.save();
+
+            wss.broadcast(notification); 
+
             return res.status(200).json({
               message: "Your password has been changed",
             });
@@ -293,6 +352,8 @@ exports.resetPassword = async (req, res) => {
     return res.status(401).json({ error: "Invalid or missing reset link" });
   }
 };
+
+
 
 exports.uploadImage = async (req, res) => {
   const { userId } = req.params;
@@ -372,8 +433,6 @@ exports.removeImage = async (req, res) => {
         .status(404)
         .json({ status: "error", message: "User or image not found" });
     }
-
-
 
     await cloudinary.uploader.destroy(user.image);
 

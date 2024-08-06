@@ -1,29 +1,22 @@
 const Project = require("../models/Project.js");
 const config = require("config");
-const { concat } = require("lodash");
-const path = require("path");
-const fs = require("fs");
 const secretOrKey = config.get("secretOrKey");
 const jwt = require("jsonwebtoken");
-const cloudinary = require("cloudinary").v2;
-const archiver = require("archiver");
-const AWS = require("aws-sdk");
-const { exec } = require('child_process');
-const Deployment = require('../models/Deployment.js');
+const { v4: uuidv4 } = require("uuid");
 
 // create project and assign it to a user
 exports.createProject = async (req, res) => {
   const {
     name,
-  description,
-  createdAt,
-  lastUpdated,
-  cloneUrl,
-  language,
-  DBType,
-  DockerImage , 
-  Status ,
-  SonarQube 
+    description,
+    createdAt,
+    lastUpdated,
+    cloneUrl,
+    language,
+    DBType,
+    DockerImage,
+    Status,
+    SonarQube
   } = req.body;
   var crypto = require("crypto");
   var reference = crypto.randomBytes(30).toString("hex");
@@ -48,9 +41,9 @@ exports.createProject = async (req, res) => {
       cloneUrl,
       language,
       DBType,
-      DockerImage , 
-      Status ,
-      SonarQube 
+      DockerImage,
+      Status,
+      SonarQube
     });
 
     await newProject.save();
@@ -66,6 +59,20 @@ exports.createProject = async (req, res) => {
       new: true,
       useFindAndModify: false,
     }).populate({ path: "myProject", model: Project });
+
+    // Create and broadcast a notification
+    const notification = {
+      id: uuidv4(), // Assuming uuidv4() generates unique IDs
+      title: "New Project Added",
+      description: `You have successfully added a new project: ${newProject.name}`,
+      time: new Date().toISOString(),
+      read: false,
+    };
+    user.notifications.push(notification);
+    await user.save();
+
+    // Broadcast the notification via WebSocket
+    wss.broadcast(notification);
 
     return res.status(201).json(newProject);
   } catch (error) {

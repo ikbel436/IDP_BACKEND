@@ -2,6 +2,7 @@
     "mongoUri": "mongodb+srv://yosri:XympO44V7qQoumfS@idp.i24g5rc.mongodb.net/",
     "secretOrKey": "my secret",
     "Client_URL": "",
-    "RESET_PWD_KEY": "ikbel"
-    
+    "RESET_PWD_KEY": "ikbel",
+    "SenderEmail": "ikbelbenmansour4@gmail.com",
+    "SenderPassword":"axva rqhb oqas fmuh"
   }

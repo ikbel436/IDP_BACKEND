@@ -1,85 +1,103 @@
+// otpController.js
 const otpGenerator = require("otp-generator");
 const nodemailer = require("nodemailer");
+const config = require("config");
 const User = require("../models/User.js");
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+
+const SenderEmail = config.get("SenderEmail");
+const SenderPassword = config.get("SenderPassword");
 
 exports.generateOtp = async (req, res) => {
   const { userEmail } = req.body;
-  const otp = otpGenerator.generate(6, {
-    upperCase: false,
-    specialChars: true,
-  });
+  const otp = otpGenerator.generate(6, { upperCase: true, specialChars: true });
 
   try {
-    const user = await User.findOne({ email: userEmail });
+    let user = await User.findOne({ email: userEmail });
 
     if (user) {
       user.otp = otp;
-      await user.save();
     } else {
-      // Create a new user with the OTP
-      const newUser = new User({ email: userEmail, otp });
-      await newUser.save();
+      user = new User({ email: userEmail, otp });
     }
 
-    // Read the HTML template
-    const filePath = path.join(__dirname, '../templates/otpEmailTemplate.html'); 
-    const htmlContent = fs.readFileSync(filePath, 'utf8');
+    const filePath = path.join(__dirname, "../templates/otpEmailTemplate.html");
+    const htmlContent = fs.readFileSync(filePath, "utf8");
+    const finalHtml = htmlContent.replace("{otp}", otp);
 
-    // Replace placeholders in the HTML content with actual values
-    const finalHtml = htmlContent.replace('{otp}', otp);
-
-    // Setup email transport
     let transporter = nodemailer.createTransport({
       service: "gmail",
-      auth: {
-        user: "ikbelbenmansour4@gmail.com",
-        pass: "axva rqhb oqas fmuh",
-      },
+      auth: { user: SenderEmail, pass: SenderPassword },
     });
 
-    // Send OTP via email
     let mailOptions = {
-      from: "noreply.inpsark@contact.tn",
+      from: "noreply@example.com",
       to: userEmail,
       subject: "Your OTP",
-      html: finalHtml, // Use the modified HTML content here
+      html: finalHtml,
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, async (error, info) => {
       if (error) {
         console.log(error);
         return res.status(500).send({ error: "Failed to send OTP" });
       } else {
+        await user.save();
         return res.status(200).send({ message: "OTP sent successfully" });
       }
     });
   } catch (error) {
-    console.error(error);
+    console.log(error);
     return res.status(500).send({ error: "Internal Server Error" });
   }
 };
 
 exports.verifyOtp = async (req, res) => {
-  const { userEmail, userOtp } = req.body;
+  const { userEmail, userOtp, deviceInfo } = req.body;
 
   try {
     const user = await User.findOne({ email: userEmail });
-
     if (!user) {
       return res.status(404).send({ error: "User not found" });
     }
 
     if (user.otp === userOtp) {
       user.otp = null;
+      user.verified = true;
+
+      const deviceId = uuidv4();
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+
+      user.trustedDevices.push({
+        deviceId: deviceId,
+        expiresAt: expirationDate,
+        deviceInfo: deviceInfo,
+      });
+
+      const notification = {
+        id: uuidv4(),
+        title: "Device Verified",
+        description: `Your device has been verified.`,
+        time: new Date().toISOString(),
+        read: false,
+      };
+
+      user.notifications.push(notification);
+
       await user.save();
-      return res.status(200).send({ message: "OTP verified successfully" });
+
+      // Send notification via WebSocket
+      wss.broadcast(notification);
+
+      return res.status(200).send({ message: "OTP verified successfully", verified: true, deviceId });
     } else {
       return res.status(400).send({ error: "Invalid OTP" });
     }
   } catch (error) {
-    console.error(error);
+    console.log(error);
     return res.status(500).send({ error: "Internal Server Error" });
   }
 };
