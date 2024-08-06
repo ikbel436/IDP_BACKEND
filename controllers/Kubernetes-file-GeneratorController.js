@@ -19,6 +19,7 @@ const { S3Client, CreateBucketCommand, PutObjectCommand, HeadBucketCommand } = r
 const { fromIni } = require("@aws-sdk/credential-provider-ini");
 const TerraformGenerator = require("terraform-generator").default;
 const AWS = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
 // AWS S3 configuration
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -169,12 +170,19 @@ exports.testPush = async (req, res) => {
         namespace: sanitizedNamespace,
       });
       await deployment.save();
-
+      const notification = {
+        id: uuidv4(),
+        title: "Deployment Successful",
+        description: `Your deployment for ${name} has been successfully completed.`,
+        time: new Date().toISOString(),
+        read: false,
+      };
       // Update the user document to include this deployment
       await User.findByIdAndUpdate(userId, {
         $push: { myDeployments: deployment._id },
+        notifications: notification,
       });
-
+      wss.broadcast(notification);
       res.status(200).json({ message: "Files pushed to Bitbucket successfully." });
     } catch (error) {
       // Save the deployment information with status 'failed'
@@ -187,12 +195,19 @@ exports.testPush = async (req, res) => {
         namespace: sanitizedNamespace,
       });
       await deployment.save();
-
+      const notification = {
+        id: uuidv4(),
+        title: "Deployment Failed",
+        description: `An error occurred during the deployment for ${name}.`,
+        time: new Date().toISOString(),
+        read: false,
+      };
       // Update the user document to include this deployment
       await User.findByIdAndUpdate(userId, {
         $push: { myDeployments: deployment._id },
+        notifications: notification,
       });
-
+      wss.broadcast(notification);
       console.error(error);
       res.status(500).json({
         message: `An error occurred during git push: ${error.message}`,
