@@ -219,8 +219,7 @@ exports.updateUser = async (req, res) => {
 // Get all users
 exports.allUsers = async (req, res) => {
   try {
-   
-    const users = await User.find({ Role: { $new: 'admin' } });
+    const users = await User.find({ Role: 'User' });
     res.status(200).json({
       users,
     });

@@ -23,36 +23,6 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// Get all users
-const allDeployments = async (req, res) => {
-    try {
-      const deployment = await Deployment.find();
-      res.status(200).json({
-        deployment,
-      });
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
-    }
-  };
-
-const retreive = [
-    verifyToken,
-    async (req, res) => {
-      try {
-        const user = await User.findById(req.user.id).populate("myDeployments");
-  
-        if (!user) {
-          return res.status(404).json({ message: "User not found" });
-        }
-  
-        const deployment = user.myDeployments;
-  
-        res.status(200).json({ deployment });
-      } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
-      }
-    },
-  ];
   
 // Retrieve all deployments for admin
 const getAllDeploymentsForAdmin = async (req, res) => {
@@ -159,6 +129,7 @@ const getAllDeploymentsForAdmin = async (req, res) => {
       }
     },
   ];
+  // Function to get the start date based on the timeframe
   const getStartDate = (timeframe) => {
     const now = new Date();
 
@@ -183,7 +154,7 @@ const getAllDeploymentsForAdmin = async (req, res) => {
             return defaultDate;
     }
 };
-
+// Function to retrieve deployment statistics
 const deploymentStat = async (req, res) => {
     try {
         const { timeframe } = req.query; 
@@ -222,19 +193,9 @@ const deploymentStat = async (req, res) => {
             });
             return summary;
         }, {});
-
-        const fixedDeployments = deployments.filter(d => d.status === 'passed').length;
-        const wontFixDeployments = Math.floor(totalDeployments * 0.05); 
-        const reOpenedDeployments = Math.floor(totalDeployments * 0.2); 
-        const needsTriageDeployments = Math.floor(totalDeployments * 0.15); 
-
         const overview = {
             new: totalDeployments,
             closed: failedDeployments, 
-            fixed: fixedDeployments,
-            wontFix: wontFixDeployments,
-            reOpened: reOpenedDeployments,
-            needsTriage: needsTriageDeployments,
             bundleSummary 
         };
 
@@ -244,6 +205,7 @@ const deploymentStat = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch deployment statistics' });
     }
 };
+// Function to retrieve deployment success rate
 const deploymentSuccessRate = async (req, res) => {
   try {
       const { timeframe } = req.query;
@@ -286,7 +248,7 @@ const deploymentSuccessRate = async (req, res) => {
   }
 };
 
-
+// Function to retrieve deployment frequency
 const deploymentFrequency = async (req, res) => {
   try {
     const { timeframe } = req.query; 
@@ -344,8 +306,6 @@ const deploymentFrequency = async (req, res) => {
 
 module.exports = {
   verifyToken,
-  retreive ,
-  allDeployments,
   getDeployments,
   deploymentStat,
   deploymentSuccessRate,
